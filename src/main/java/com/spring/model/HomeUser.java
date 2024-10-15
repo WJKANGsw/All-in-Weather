@@ -30,6 +30,17 @@ public class HomeUser {
     @Column(nullable = false, unique = true, length = 100)
     private String email;
 
+    // 추가 생성자
+    public HomeUser(String username, String password, String email) {
+        this.username = username;
+        this.password = password;
+        this.email = email;
+    }
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserRole role; // 사용자 역할 필드 추가
+
     // 추가 필드 예시
     // private String firstName;
     // private String lastName;

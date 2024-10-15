@@ -1,55 +1,84 @@
 package com.spring.security;
 
+import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 
 @Component
+@RequiredArgsConstructor
 public class JwtTokenProvider {
 
-    private final String SECRET_KEY = "your_secret_key"; // 비밀 키
-    private final long VALIDITY = 604800000L; // 7일 (밀리초)
+    @Value("${springboot.jwt.secret}")
+    private String secretKey;
 
-    // JWT 토큰 생성
-    public String generateToken(Authentication authentication) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("username", authentication.getName());
+    private final long tokenValidMillisecond = 1000L * 60 * 60; // 1시간
 
+    @PostConstruct
+    protected void init() {
+        secretKey = Base64.getEncoder().encodeToString(secretKey.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private SecretKey getSigningKey() {
+        byte[] keyBytes = Base64.getDecoder().decode(secretKey);
+        return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    public String createToken(String username, List<String> roles) {
+        Date now = new Date();
         return Jwts.builder()
-                .setClaims(claims)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + VALIDITY))
-                .signWith(SignatureAlgorithm.HS512, SECRET_KEY)
+                .setSubject(username)
+                .claim("roles", roles)
+                .setIssuedAt(now)
+                .setExpiration(new Date(now.getTime() + tokenValidMillisecond))
+                .signWith(getSigningKey())
                 .compact();
     }
 
-    // JWT 토큰 검증
+    public UsernamePasswordAuthenticationToken getAuthentication(String token) {
+        String username = getUsername(token);
+        return new UsernamePasswordAuthenticationToken(username, null, null); // 권한 정보는 추후 추가 가능
+    }
+
+    public String getUsername(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+        return claims.getSubject();
+    }
+
+    public String resolveToken(HttpServletRequest request) {
+        String token = request.getHeader("Authorization");
+        if (token != null && token.startsWith("Bearer ")) {
+            return token.substring(7);
+        }
+        return null;
+    }
+
     public boolean validateToken(String token) {
         try {
-            Jwts.parser().setSigningKey(SECRET_KEY).parseClaimsJws(token);
+            Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token);
             return true;
         } catch (Exception e) {
             return false;
         }
-    }
-
-    // JWT 토큰으로부터 인증 정보 얻기
-    public Authentication getAuthentication(String token) {
-        Claims claims = Jwts.parser()
-                .setSigningKey(SECRET_KEY)
-                .parseClaimsJws(token)
-                .getBody();
-
-        String username = claims.get("username", String.class);
-        // 여기에서 UserDetailsService를 통해 사용자 정보를 로드하고 인증 객체를 생성할 수 있습니다.
-        // UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-        return null; // 실제로는 Authentication 객체를 반환해야 합니다.
     }
 }

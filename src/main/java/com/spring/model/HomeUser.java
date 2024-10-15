@@ -40,8 +40,4 @@ public class HomeUser {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserRole role; // 사용자 역할 필드 추가
-
-    // 추가 필드 예시
-    // private String firstName;
-    // private String lastName;
 }

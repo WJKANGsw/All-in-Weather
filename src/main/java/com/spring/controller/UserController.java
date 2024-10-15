@@ -67,8 +67,9 @@ public class UserController {
 
     @PostMapping("/register") // '/api/users/register' 경로로 요청을 처리
     public ResponseEntity<UserDto> registerUser(@RequestBody UserDto userDto) {
-        // password는 UserDto에 포함되어 있다고 가정
-        UserDto createdUser = userService.createUser(userDto.username(), userDto.password(), userDto.email());
+        // 비밀번호를 BCrypt로 인코딩
+        String encryptedPassword = passwordEncoder.encode(userDto.password());
+        UserDto createdUser = userService.createUser(userDto.username(), encryptedPassword, userDto.email());
         return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
     }
 

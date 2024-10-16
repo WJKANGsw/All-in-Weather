@@ -14,27 +14,34 @@ import java.util.Optional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder; // BCryptPasswordEncoder 주입
 
     // 사용자 등록
     @Transactional
-    public UserDto createUser(String username, String password, String email) {
+    public UserDto createUser(String username, String userId, String password, String email) {
         // 비밀번호를 해시화 (예: BCrypt 사용)
         String hashedPassword = hashPassword(password);
-        HomeUser user = new HomeUser(username, hashedPassword, email);
-        user.setRole(UserRole.USER); // 기본 역할 설정
+        HomeUser user = new HomeUser(null, username, userId, hashedPassword, email, UserRole.USER); // ID는 null로 설정
         user = userRepository.save(user);
-        return new UserDto(user.getId(), user.getUsername(), user.getEmail(), null); // 비밀번호는 제외
+        return new UserDto(user.getId(), user.getUsername(), user.getUserId(), user.getEmail(), null); // 비밀번호는 제외
     }
+
 
     // 사용자 조회
     public Optional<UserDto> getUser(Long id) {
         return userRepository.findById(id)
-                .map(user -> new UserDto(user.getId(), user.getUsername(), user.getEmail(), null)); // 비밀번호는 제외
+                .map(user -> new UserDto(user.getId(), user.getUsername(), user.getUserId(),user.getEmail(), null)); // 비밀번호는 제외
     }
 
     public Optional<HomeUser> getUserByUsername(String username) {
         return Optional.ofNullable(userRepository.findByUsername(username));
     }
+
+    public Optional<HomeUser> getUserById(String userId) {
+        return userRepository.findByUserId(userId)
+                .map(user -> new HomeUser(user.getId(), user.getUsername(), user.getUserId(), user.getPassword(), user.getEmail(), user.getRole()));
+    }
+
 
     // 사용자 업데이트
     public UserDto updateUser(Long id, String username, String email, String password) {
@@ -44,13 +51,13 @@ public class UserService {
             user.setUsername(username);
             user.setEmail(email);
 
-            // 비밀번호가 제공된 경우 업데이트
+            // 비밀번호가 제공된 경우 해싱 후 업데이트
             if (password != null) {
-                user.setPassword(password); // 해싱된 비밀번호를 저장
+                user.setPassword(hashPassword(password)); // 해싱된 비밀번호 저장
             }
 
             userRepository.save(user); // 변경된 사용자 정보를 저장
-            return new UserDto(user.getId(), user.getUsername(), user.getEmail(), null);
+            return new UserDto(user.getId(), user.getUsername(), user.getUserId(),user.getEmail(), null);
         }
         return null; // 사용자 찾지 못한 경우
     }
@@ -63,10 +70,13 @@ public class UserService {
         user.setPassword(hashPassword(newPassword)); // 비밀번호 해시화
     }
 
-    // 비밀번호 해시화 메서드 (예: BCrypt)
+    // 비밀번호 해시화 메서드
     private String hashPassword(String password) {
-        // 비밀번호 해시화 로직 구현 (BCrypt 사용 예시)
-        return password; // 여기서는 단순히 리턴 (해시화 로직 필요)
+        return passwordEncoder.encode(password); // BCryptPasswordEncoder로 비밀번호 인코딩
+    }
+
+    public boolean checkPassword(HomeUser user, String rawPassword) {
+        return passwordEncoder.matches(rawPassword, user.getPassword());
     }
 
     // 사용자 삭제

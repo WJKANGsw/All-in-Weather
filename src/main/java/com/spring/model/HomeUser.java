@@ -10,7 +10,6 @@ import lombok.NoArgsConstructor;
 @Entity
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 @Builder
 @Table(name = "homeuser")
 public class HomeUser {
@@ -22,22 +21,36 @@ public class HomeUser {
     @Column(nullable = false, unique = true, length = 50)
     private String username;
 
+    @Column(nullable = false, unique = true, length = 50)
+    private String userId;
 
     @Column(nullable = false, length = 255)
-    @JsonIgnore // JSON 응답에서 비밀번호를 숨김
-    private String password; // 비밀번호는 해시된 값으로 저장해야 합니다.
+    @JsonIgnore
+    private String password;
 
     @Column(nullable = false, unique = true, length = 100)
     private String email;
 
-    // 추가 생성자
-    public HomeUser(String username, String password, String email) {
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserRole role;
+
+    // 모든 필드를 받는 생성자
+    public HomeUser(Long id, String username, String userId, String password, String email, UserRole role) {
+        this.id = id;
+        this.username = username;
+        this.userId = userId;
+        this.password = password;
+        this.email = email;
+        this.role = role;
+    }
+
+    // 비밀번호와 역할이 없는 생성자
+    public HomeUser(String userId, String username, String password, String email) {
+        this.userId = userId;
         this.username = username;
         this.password = password;
         this.email = email;
+        this.role = UserRole.USER; // 기본 역할 설정
     }
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private UserRole role; // 사용자 역할 필드 추가
 }

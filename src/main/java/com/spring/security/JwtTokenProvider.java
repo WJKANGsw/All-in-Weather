@@ -34,10 +34,11 @@ public class JwtTokenProvider {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String createToken(String username, List<String> roles) {
+    public String createToken(String username, String userId, List<String> roles) { // userId의 타입을 String으로 변경
         Date now = new Date();
         return Jwts.builder()
                 .setSubject(username)
+                .claim("userId", userId) // 사용자 ID를 String으로 추가
                 .claim("roles", roles)
                 .setIssuedAt(now)
                 .setExpiration(new Date(now.getTime() + tokenValidMillisecond))
@@ -57,6 +58,15 @@ public class JwtTokenProvider {
                 .parseClaimsJws(token)
                 .getBody();
         return claims.getSubject();
+    }
+
+    public String getUserId(String token) { // 반환 타입을 Long에서 String으로 변경
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+        return claims.get("userId", String.class); // 사용자 ID를 String으로 가져오기
     }
 
     public String resolveToken(HttpServletRequest request) {

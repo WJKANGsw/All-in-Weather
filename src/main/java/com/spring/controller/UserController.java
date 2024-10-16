@@ -4,6 +4,7 @@ import com.spring.model.HomeUser;
 import com.spring.model.UserDto;
 import com.spring.security.JwtTokenProvider;
 import com.spring.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,15 +23,14 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class UserController {
     private final UserService userService;
-    private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class); // Logger 추가
 
     // 사용자 등록
-    @PostMapping
-    public ResponseEntity<UserDto> createUser(@RequestBody UserDto userDto) {
-        UserDto createdUser = userService.createUser(userDto.username(), userDto.password(), userDto.email());
+    @PostMapping("/register")
+    public ResponseEntity<UserDto> registerUser(@RequestBody UserDto userDto) {
+        UserDto createdUser = userService.createUser(userDto.username(), userDto.userId(), userDto.password(), userDto.email());
         logger.info("User registered: {}", createdUser.username()); // 로그 추가
         return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
     }
@@ -38,37 +38,31 @@ public class UserController {
     // 사용자 조회
     @GetMapping("/{id}")
     public ResponseEntity<UserDto> getUser(@PathVariable Long id) {
-        Optional<UserDto> userDto = userService.getUser(id);
-        if (userDto.isPresent()) {
-            logger.info("User retrieved: {}", userDto.get().username()); // 로그 추가
-            return ResponseEntity.ok(userDto.get());
-        } else {
-            logger.warn("User not found: {}", id); // 로그 추가
-            return ResponseEntity.notFound().build();
-        }
+        return userService.getUser(id)
+                .map(userDto -> {
+                    logger.info("User retrieved: {}", userDto.username()); // 로그 추가
+                    return ResponseEntity.ok(userDto);
+                })
+                .orElseGet(() -> {
+                    logger.warn("User not found: {}", id); // 로그 추가
+                    return ResponseEntity.notFound().build();
+                });
     }
 
+    // 사용자 업데이트
     @PutMapping("/{id}")
     public ResponseEntity<UserDto> updateUser(@PathVariable Long id, @RequestBody UserDto userDto) {
-        String encryptedPassword = null;
-
-        // 비밀번호가 제공된 경우
-        if (userDto.password() != null && !userDto.password().isEmpty()) {
-            encryptedPassword = passwordEncoder.encode(userDto.password());
-        }
-
-        UserDto updatedUser = userService.updateUser(id, userDto.username(), userDto.email(), encryptedPassword);
+        UserDto updatedUser = userService.updateUser(id, userDto.username(), userDto.email(), userDto.password());
         logger.info("User updated: {}", updatedUser.username()); // 로그 추가
-
         return ResponseEntity.ok(updatedUser);
     }
 
+    // 비밀번호 업데이트
     @PutMapping("/{id}/password")
     public ResponseEntity<Void> updatePassword(@PathVariable Long id, @RequestParam String newPassword) {
-        String encryptedPassword = passwordEncoder.encode(newPassword);
-        userService.updatePassword(id, encryptedPassword); // 비밀번호 업데이트
+        userService.updatePassword(id, newPassword); // 비밀번호 업데이트
         logger.info("Password updated for user: {}", id); // 로그 추가
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.noContent().build(); // 204 No Content
     }
 
     // 사용자 삭제
@@ -76,29 +70,26 @@ public class UserController {
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         logger.info("User deleted: {}", id); // 로그 추가
-        return ResponseEntity.ok().build(); // 200 OK로 응답
-    }
-
-    @PostMapping("/register") // '/api/users/register' 경로로 요청을 처리
-    public ResponseEntity<UserDto> registerUser(@RequestBody UserDto userDto) {
-        String encryptedPassword = passwordEncoder.encode(userDto.password());
-        UserDto createdUser = userService.createUser(userDto.username(), encryptedPassword, userDto.email());
-        logger.info("User registered via register endpoint: {}", createdUser.username()); // 로그 추가
-        return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
+        return ResponseEntity.noContent().build(); // 204 No Content
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, String>> login(@RequestBody UserDto userDto) {
-        HomeUser user = userService.getUserByUsername(userDto.username())
+    public ResponseEntity<Map<String, Object>> login(@RequestBody UserDto userDto) {
+        // userId를 통해 사용자 검색
+        HomeUser user = userService.getUserById(userDto.userId())
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        if (!passwordEncoder.matches(userDto.password(), user.getPassword())) {
-            logger.warn("Invalid password attempt for user: {}", userDto.username()); // 로그 추가
+        // 비밀번호 확인
+        if (!userService.checkPassword(user, userDto.password())) {
+            logger.warn("Invalid password attempt for userId: {}", userDto.userId()); // 로그 추가
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid password"));
         }
 
-        String token = jwtTokenProvider.createToken(user.getUsername(), List.of(user.getRole().getValue()));
+        // JWT 토큰 생성
+        String token = jwtTokenProvider.createToken(user.getUsername(), user.getUserId(), List.of(user.getRole().getValue()));
         logger.info("User logged in: {}", user.getUsername()); // 로그 추가
-        return ResponseEntity.ok(Map.of("token", token)); // JSON 객체로 반환
+
+        // 사용자 정보와 토큰을 포함한 응답
+        return ResponseEntity.ok(Map.of("user", Map.of("username", user.getUsername()), "token", token));
     }
 }

@@ -4,14 +4,13 @@ import com.spring.model.HomeUser;
 import com.spring.model.UserDto;
 import com.spring.security.JwtTokenProvider;
 import com.spring.service.UserService;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,6 +23,7 @@ import java.util.Optional;
 public class UserController {
     private final UserService userService;
     private final JwtTokenProvider jwtTokenProvider;
+
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class); // Logger 추가
 
@@ -50,12 +50,36 @@ public class UserController {
     }
 
     // 사용자 업데이트
-    @PutMapping("/{id}")
-    public ResponseEntity<UserDto> updateUser(@PathVariable Long id, @RequestBody UserDto userDto) {
-        UserDto updatedUser = userService.updateUser(id, userDto.username(), userDto.email(), userDto.password());
-        logger.info("User updated: {}", updatedUser.username()); // 로그 추가
-        return ResponseEntity.ok(updatedUser);
+    @PutMapping("/update")
+    public ResponseEntity<UserDto> updateUser(@RequestBody UserDto userDto) {
+        // JWT에서 userId 가져오기
+        String userId = jwtTokenProvider.getUserIdFromToken(); // JWT에서 사용자 ID를 가져옴
+
+        // 유효성 검사
+        if (userDto.username() == null || userDto.username().isEmpty() ||
+            userDto.email() == null || userDto.email().isEmpty()) {
+            logger.warn("Invalid user update attempt: {}", userDto);
+            return ResponseEntity.badRequest().body(null); // 400 Bad Request
+        }
+
+        try {
+            // JWT에서 가져온 userId로 사용자 업데이트
+            UserDto updatedUser = userService.updateUser(userId, userDto.username(), userDto.email(), userDto.password());
+            if (updatedUser == null) {
+                logger.warn("User not found with ID: {}", userId);
+                return ResponseEntity.notFound().build(); // 404 Not Found
+            }
+            logger.info("User updated: {}", updatedUser.username());
+            return ResponseEntity.ok(updatedUser);
+        } catch (Exception e) {
+            logger.error("Error updating user with ID {}: {}", userId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // 500 Internal Server Error
+        }
     }
+
+
+
+
 
     // 비밀번호 업데이트
     @PutMapping("/{id}/password")
@@ -92,4 +116,17 @@ public class UserController {
         // 사용자 정보와 토큰을 포함한 응답
         return ResponseEntity.ok(Map.of("user", Map.of("username", user.getUsername()), "token", token));
     }
+    @GetMapping("/me")
+    public ResponseEntity<HomeUser> getMe(Authentication authentication) {
+        // 인증된 사용자의 username 또는 userId를 가져옵니다.
+        String username = authentication.getName(); // 사용자 이름을 가져옵니다.
+
+        // UserService를 통해 사용자 정보 조회
+        Optional<HomeUser> userDto = userService.getUserByUsername(username);
+
+        return userDto
+            .map(ResponseEntity::ok)
+            .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+    }
+
 }

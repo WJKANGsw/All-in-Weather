@@ -34,7 +34,8 @@ public class UserService {
     }
 
     public Optional<HomeUser> getUserByUsername(String username) {
-        return Optional.ofNullable(userRepository.findByUsername(username));
+        return userRepository.findByUsername(username)
+            .map(user -> new HomeUser(user.getId(), user.getUsername(), user.getUserId(), null,user.getEmail(), null));
     }
 
     public Optional<HomeUser> getUserById(String userId) {
@@ -44,8 +45,8 @@ public class UserService {
 
 
     // 사용자 업데이트
-    public UserDto updateUser(Long id, String username, String email, String password) {
-        Optional<HomeUser> userOptional = userRepository.findById(id);
+    public UserDto updateUser(String userId, String username, String email, String password) {
+        Optional<HomeUser> userOptional = userRepository.findByUserId(userId);
         if (userOptional.isPresent()) {
             HomeUser user = userOptional.get();
             user.setUsername(username);
@@ -57,10 +58,11 @@ public class UserService {
             }
 
             userRepository.save(user); // 변경된 사용자 정보를 저장
-            return new UserDto(user.getId(), user.getUsername(), user.getUserId(),user.getEmail(), null);
+            return new UserDto(user.getId(), user.getUsername(), user.getUserId(), user.getEmail(), null);
         }
         return null; // 사용자 찾지 못한 경우
     }
+
 
     // 비밀번호 업데이트
     @Transactional
@@ -77,6 +79,13 @@ public class UserService {
 
     public boolean checkPassword(HomeUser user, String rawPassword) {
         return passwordEncoder.matches(rawPassword, user.getPassword());
+    }
+
+    // 사용자 정보 조회 (JWT로부터 사용자 정보 추출)
+    public UserDto getCurrentUser(String userId) {
+        return userRepository.findByUserId(userId)
+            .map(user -> new UserDto(user.getId(), user.getUsername(), user.getUserId(), user.getEmail(), null))
+            .orElseThrow(() -> new UserNotFoundException("User not found"));
     }
 
     // 사용자 삭제

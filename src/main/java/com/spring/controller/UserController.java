@@ -30,8 +30,7 @@ public class UserController {
     // 사용자 등록
     @PostMapping("/register")
     public ResponseEntity<UserDto> registerUser(@RequestBody UserDto userDto) {
-        UserDto createdUser = userService.createUser(userDto.username(), userDto.userId(), userDto.password(), userDto.email());
-        logger.info("User registered: {}", createdUser.username()); // 로그 추가
+        UserDto createdUser = userService.createUser(userDto.username(), userDto.userId(), userDto.password(), userDto.email(), userDto.age());
         return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
     }
 
@@ -49,26 +48,10 @@ public class UserController {
                 });
     }
 
-//    @CrossOrigin(origins = "http://localhost:5173")
-//    @GetMapping("/show/{userId}")
-//    public ResponseEntity<UserDto> getUserByUsername(@PathVariable String userId) {
-//        Optional<UserDto> userDto = userService.getUserUserId(userId);
-//        return userDto.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
-//    }
-
-//    // 사용자 업데이트
-//    @PutMapping("/{userId}")
-//    public ResponseEntity<UserDto> updateUser(@PathVariable Long id, @RequestBody UserDto userDto) {
-//        UserDto updatedUser = userService.updateUser(id, userDto.username(), userDto.email(), userDto.password());
-//        logger.info("User updated: {}", updatedUser.username()); // 로그 추가
-//        return ResponseEntity.ok(updatedUser);
-//    }
-
     // 사용자 업데이트
     @PutMapping("/update/{userId}")
     public ResponseEntity<UserDto> updateUser(@PathVariable String userId, @RequestBody UserDto userDto) {
-        UserDto updatedUser = userService.updateUser(userDto.id(), userDto.userId(), userDto.username(), userDto.email(), userDto.password());
-        logger.info("User updated: {}", updatedUser.userId()); // 로그 추가
+        UserDto updatedUser = userService.updateUser(userDto.id(), userDto.userId(), userDto.username(), userDto.email(), userDto.password(), userDto.age());
         return ResponseEntity.ok(updatedUser);
     }
 

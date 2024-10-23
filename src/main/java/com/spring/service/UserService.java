@@ -18,54 +18,46 @@ public class UserService {
 
     // 사용자 등록
     @Transactional
-    public UserDto createUser(String username, String userId, String password, String email) {
-        // 비밀번호를 해시화 (예: BCrypt 사용)
+    public UserDto createUser(String username, String userId, String password, String email, Integer age) {
         String hashedPassword = hashPassword(password);
-        HomeUser user = new HomeUser(null, username, userId, hashedPassword, email, UserRole.USER); // ID는 null로 설정
+        HomeUser user = new HomeUser(null, username, userId, hashedPassword, email, UserRole.USER, age); // ID는 null로 설정
         user = userRepository.save(user);
-        return new UserDto(user.getId(), user.getUsername(), user.getUserId(), user.getEmail(), null); // 비밀번호는 제외
-    }
-
-
-    // 사용자 조회
-    public Optional<UserDto> getUser(Long id) {
-        return userRepository.findById(id)
-                .map(user -> new UserDto(user.getId(), user.getUsername(), user.getUserId(),user.getEmail(), null)); // 비밀번호는 제외
+        return new UserDto(user.getId(), user.getUsername(), user.getUserId(), user.getEmail(), null, user.getAge()); // 비밀번호는 제외
     }
 
     public Optional<HomeUser> getUserByUsername(String username) {
         return Optional.ofNullable(userRepository.findByUsername(username));
     }
 
-//    public Optional<UserDto> getUserUserId(String username) {
-//        return userRepository.findByUsername(username)
-//                .map(user -> new UserDto(user.getId(), user.getUsername(), user.getEmail(), null)); // 비밀번호는 제외
-//    }
+    // 사용자 조회
+    public Optional<UserDto> getUser(Long id) {
+        return userRepository.findById(id)
+                .map(user -> new UserDto(user.getId(), user.getUsername(), user.getUserId(), user.getEmail(), null, user.getAge())); // 비밀번호는 제외
+    }
 
     public Optional<HomeUser> getUserById(String userId) {
         return userRepository.findByUserId(userId)
-                .map(user -> new HomeUser(user.getId(), user.getUsername(), user.getUserId(), user.getPassword(), user.getEmail(), user.getRole()));
+                .map(user -> new HomeUser(user.getId(), user.getUsername(), user.getUserId(), user.getPassword(), user.getEmail(), user.getRole(), user.getAge())); // age 필드 추가
     }
 
-
     // 사용자 업데이트
-    public UserDto updateUser(Long id, String userId, String username, String email, String password) {
+    public UserDto updateUser(Long id, String userId, String username, String email, String password, Integer age) {
         Optional<HomeUser> userOptional = userRepository.findById(id);
         if (userOptional.isPresent()) {
             HomeUser user = userOptional.get();
             user.setUserId(userId);
             user.setUsername(username);
             user.setEmail(email);
+            user.setAge(age); // 나이 업데이트
 
-            // 비밀번호가 제공된 경우 해싱 후 업데이트
             if (password != null) {
-                user.setPassword(hashPassword(password)); // 해싱된 비밀번호 저장
+                user.setPassword(hashPassword(password));
             }
 
-            userRepository.save(user); // 변경된 사용자 정보를 저장
-            return new UserDto(user.getId(),user.getUserId(), user.getUsername(), user.getEmail(), null);
+            userRepository.save(user);
+            return new UserDto(user.getId(), user.getUsername(), user.getUserId(), user.getEmail(), null, user.getAge());
         }
-        return null; // 사용자 찾지 못한 경우
+        return null;
     }
 
     public UserDto updateUserId(String userId){
@@ -75,7 +67,7 @@ public class UserService {
             user.setUserId(userId);
 
             userRepository.save(user);
-            new UserDto(user.getId(), user.getUsername(), user.getUserId(), user.getEmail(), null);
+            return new UserDto(user.getId(), user.getUsername(), user.getUserId(), user.getEmail(), null, user.getAge()); // 수정된 UserDto 반환
         }
         return null;
     }

@@ -16,9 +16,9 @@ public class Recommendation {
     @JoinColumn(name = "user_id", nullable = false)
     private HomeUser user;
 
-    @ManyToOne
-    @JoinColumn(name = "weather_id", nullable = false)
-    private Weather weather;
+//    @ManyToOne
+//    @JoinColumn(name = "weather_id", nullable = false)
+//    private Weather weather;
 
     @Column(nullable = false, length = 1)
     private String gender;

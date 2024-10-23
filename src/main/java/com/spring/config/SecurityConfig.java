@@ -1,6 +1,10 @@
 package com.spring.config;
 
+import com.spring.oauth2.CustomSuccessHandler;
 import com.spring.security.JwtAuthenticationFilter;
+import com.spring.security.social_jwt.JWTUtil;
+import com.spring.service.CustomOAuth2UserService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -16,6 +20,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 
@@ -25,25 +31,48 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CustomOAuth2UserService customOAuth2UserService;
+    private final CustomSuccessHandler customSuccessHandler;
+    private final JWTUtil jwtUtil;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors() // CORS 활성화
-                .and()
+                .cors(corsCustomizer -> corsCustomizer.configurationSource(new CorsConfigurationSource() {
+                    @Override
+                    public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
+                        CorsConfiguration configuration = new CorsConfiguration();
+                        configuration.setAllowedOrigins(Collections.singletonList("http://localhost:5173"));
+                        configuration.setAllowedMethods(Collections.singletonList("*"));
+                        configuration.setAllowCredentials(true);
+                        configuration.setAllowedHeaders(Collections.singletonList("*"));
+                        configuration.setMaxAge(3600L);
+                        configuration.setExposedHeaders(Arrays.asList("Set-Cookie", "Authorization"));
+                        return configuration;
+                    }
+                }))
                 .csrf(csrf -> csrf.disable()) // CSRF 보호 비활성화
-                .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/api/users/register", "/api/users/login").permitAll() // 사용자 등록 및 로그인 허용
-                        .anyRequest().authenticated() // 나머지 요청은 인증 필요
-                )
+                .formLogin(form -> form.disable()) // Form 로그인 비활성화
+                .httpBasic(httpBasic -> httpBasic.disable()) // HTTP Basic 인증 비활성화
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // JWT 사용 시 세션 관리 비활성화
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class) // JWT 필터 추가
-                .exceptionHandling() // 예외 처리를 위한 추가
-                .authenticationEntryPoint((request, response, authException) -> {
-                    response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access Denied"); // 403 오류 발생 시 처리
-                });
+                .oauth2Login(oauth2 -> oauth2
+                        .userInfoEndpoint(userInfoEndpointConfig -> userInfoEndpointConfig
+                                .userService(customOAuth2UserService))
+                        .successHandler(customSuccessHandler)
+                )
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers("/api/users/register", "/api/users/login").permitAll() // 사용자 등록 및 로그인 허용
+                        .requestMatchers("/").permitAll()
+                        .anyRequest().authenticated() // 나머지 요청은 인증 필요
+                )
+                .exceptionHandling(exceptionHandling ->
+                        exceptionHandling.authenticationEntryPoint((request, response, authException) -> {
+                            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access Denied"); // 403 오류 발생 시 처리
+                        })
+                );
 
         return http.build(); // SecurityFilterChain 반환
     }

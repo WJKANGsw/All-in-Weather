@@ -2,6 +2,8 @@ package com.spring.security.social_jwt;
 
 import com.spring.model.social_dto.CustomOAuth2User;
 import com.spring.model.social_dto.SocialUserDTO;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -25,59 +27,63 @@ public class JWTFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-
         String authorization = null;
         Cookie[] cookies = request.getCookies();
-        for (Cookie cookie : cookies) {
-
-            if (cookie.getName().equals("Authorization")) {
-
-                authorization = cookie.getValue();
+        if (cookies != null) {  // 쿠키가 있을 경우만 루프를 돈다
+            for (Cookie cookie : cookies) {
+                if (cookie.getName().equals("Authorization")) {
+                    authorization = cookie.getValue();
+                }
             }
         }
 
-        //Authorization 헤더 검증
+        // Authorization 헤더 검증
         if (authorization == null) {
-
-            System.out.println("token null");
             filterChain.doFilter(request, response);
-
-            //조건이 해당되면 메소드 종료 (필수)
             return;
         }
 
-        //토큰
+        // 토큰
         String token = authorization;
 
-        if (jwtUtil.isExpired(token)) {
+        // Claims에서 loginType 가져오기
+        Claims claims = Jwts.parser()
+            .verifyWith(jwtUtil.getSecretKey())
+            .build()
+            .parseSignedClaims(token)
+            .getBody();
 
-            System.out.println("token expired");
-            filterChain.doFilter(request, response);
+        String loginType = claims.get("loginType", String.class);
 
-            //조건이 해당되면 메소드 종료 (필수)
-            return;
+        // 소셜 로그인 처리
+        if ("social".equals(loginType)) {
+            if (jwtUtil.isExpired(token)) {
+                System.out.println("소셜 로그인 토큰 만료됨");
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            // 유효한 토큰이라면, 인증 정보 설정
+            String username = jwtUtil.getUsername(token);
+            String name = jwtUtil.getName(token);
+            String email = jwtUtil.getEmail(token);
+            String role = jwtUtil.getRole(token);
+
+            // 사용자 정보로 DTO 생성
+            SocialUserDTO sc_userDTO = new SocialUserDTO();
+            sc_userDTO.setUsername(username);
+            sc_userDTO.setName(name);
+            sc_userDTO.setEmail(email);
+            sc_userDTO.setRole(role);
+
+            // 사용자 인증 객체 생성
+            CustomOAuth2User customOAuth2User = new CustomOAuth2User(sc_userDTO);
+
+            // 스프링 시큐리티 인증 토큰 생성 및 설정
+            Authentication authToken = new UsernamePasswordAuthenticationToken(customOAuth2User, null, customOAuth2User.getAuthorities());
+            SecurityContextHolder.getContext().setAuthentication(authToken);
+            System.out.println("소셜 로그인 인증 완료: " + username);
         }
-
-        // 토큰에서 username, role, email, name 획득
-        String username = jwtUtil.getUsername(token);
-        String name = jwtUtil.getName(token);
-        String email = jwtUtil.getEmail(token);
-        String role = jwtUtil.getRole(token);
-
-        // userDTO를 생성하여 값 set
-        SocialUserDTO sc_userDTO = new SocialUserDTO();
-        sc_userDTO.setUsername(username);
-        sc_userDTO.setName(name);
-        sc_userDTO.setEmail(email);
-        sc_userDTO.setRole(role);
-
-        //UserDetails에 회원 정보 객체 담기
-        CustomOAuth2User customOAuth2User = new CustomOAuth2User(sc_userDTO);
-
-        //스프링 시큐리티 인증 토큰 생성
-        Authentication authToken = new UsernamePasswordAuthenticationToken(customOAuth2User, null, customOAuth2User.getAuthorities());
-        //세션에 사용자 등록
-        SecurityContextHolder.getContext().setAuthentication(authToken);
 
         filterChain.doFilter(request, response);
     }

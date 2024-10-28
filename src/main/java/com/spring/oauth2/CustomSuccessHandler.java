@@ -40,7 +40,7 @@ public class CustomSuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         GrantedAuthority auth = iterator.next();
         String role = auth.getAuthority();
 
-        String token = jwtUtil.createJwt(username, role, name, email, 60 * 60 * 60 * 60L);
+        String token = jwtUtil.createJwt(username, role, name, email, 60 * 60 * 60 * 60L, "social");
 
         response.addCookie(createCookie("Authorization", token));
         response.sendRedirect("http://localhost:5173/dashboard");

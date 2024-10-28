@@ -1,5 +1,6 @@
 package com.spring.security.social_jwt;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -19,10 +20,10 @@ public class JWTUtil {
         secretKey = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), Jwts.SIG.HS256.key().build().getAlgorithm());
     }
 
-
-//    protected void init() {
-//        secretKey = Base64.getEncoder().encodeToString(secretKey.getBytes(StandardCharsets.UTF_8));
-//    }
+    // 추가된 메서드
+    public SecretKey getSecretKey() {
+        return secretKey;
+    }
 
     public String getUsername(String token) {
 
@@ -47,16 +48,16 @@ public class JWTUtil {
         return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().getExpiration().before(new Date());
     }
 
-    public String createJwt(String username, String role, String email, String name, Long expiredMs) {
+    public String createJwt(String username, String role,  String name,String email, Long expiredMs, String loginType) {
         return Jwts.builder()
                 .claim("username", username)
                 .claim("role", role)
-                .claim("email", email)
                 .claim("name", name)
+                .claim("email", email)
+                .claim("loginType", loginType)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiredMs))
                 .signWith(secretKey)
                 .compact();
     }
-
 }

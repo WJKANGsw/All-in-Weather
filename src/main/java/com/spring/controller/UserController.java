@@ -30,9 +30,15 @@ public class UserController {
     // 사용자 등록
     @PostMapping("/register")
     public ResponseEntity<UserDto> registerUser(@RequestBody UserDto userDto) {
+        logger.info("Registering user: {}", userDto.username()); // 등록 시작 로그
+
+        // 사용자 등록
         UserDto createdUser = userService.createUser(userDto.username(), userDto.userId(), userDto.password(), userDto.email(), userDto.age());
+
+        logger.info("User registered successfully: {}", createdUser.username()); // 성공적인 등록 로그
         return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
     }
+
 
     // 사용자 조회
     @GetMapping("/show/{userId}")
@@ -76,23 +82,30 @@ public class UserController {
 
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(@RequestBody UserDto userDto) {
+        logger.info("Login attempt for userId: {}", userDto.userId()); // 로그인 시도 로그
+
         // userId를 통해 사용자 검색
         HomeUser user = userService.getUserById(userDto.userId())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+            .orElseThrow(() -> {
+                logger.warn("User not found: {}", userDto.userId()); // 사용자 미발견 로그
+                return new UsernameNotFoundException("User not found");
+            });
 
         // 비밀번호 확인
         if (!userService.checkPassword(user, userDto.password())) {
-            logger.warn("Invalid password attempt for userId: {}", userDto.userId()); // 로그 추가
+            logger.warn("Invalid password attempt for userId: {}", userDto.userId()); // 잘못된 비밀번호 로그
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid password"));
         }
 
         // JWT 토큰 생성
         String token = jwtTokenProvider.createToken(user.getUsername(), user.getUserId(), List.of(user.getRole().getValue()));
-        logger.info("User logged in: {}", user.getUsername()); // 로그 추가
+
+        logger.info("User logged in successfully: {}", user.getUsername()); // 성공적인 로그인 로그
 
         // 사용자 정보와 토큰을 포함한 응답
         return ResponseEntity.ok(Map.of("user", Map.of("username", user.getUsername()), "token", token));
     }
+
 
     @GetMapping("/social_user")
     public ResponseEntity<?> getUserInfo(Authentication authentication) {
@@ -115,4 +128,22 @@ public class UserController {
 
         return ResponseEntity.ok(userInfo);
     }
+
+//    @PostMapping("/login/{provider}")
+//    public ResponseEntity<Map<String, Object>> socialLogin(@PathVariable String provider, @RequestBody Map<String, String> authData) {
+//        // provider에 따라 사용자를 인증하고 사용자 정보를 가져오는 로직
+//        String accessToken = authData.get("accessToken"); // 클라이언트에서 보낸 accessToken
+//        CustomOAuth2User user = userService.authenticateWithProvider(provider, accessToken); // 소셜 로그인 처리
+//
+//        if (user == null) {
+//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid provider or access token"));
+//        }
+//
+//        // JWT 토큰 생성
+//        String token = jwtTokenProvider.createToken(user.getUsername(), user.getUserId(), List.of(user.getRole().getValue()));
+//
+//        // 사용자 정보와 토큰을 포함한 응답
+//        return ResponseEntity.ok(Map.of("user", Map.of("username", user.getUsername()), "token", token));
+//    }
+
 }

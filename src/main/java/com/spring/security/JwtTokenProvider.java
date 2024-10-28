@@ -29,22 +29,23 @@ public class JwtTokenProvider {
         secretKey = Base64.getEncoder().encodeToString(secretKey.getBytes(StandardCharsets.UTF_8));
     }
 
-    private SecretKey getSigningKey() {
+    public SecretKey getSigningKey() {
         byte[] keyBytes = Base64.getDecoder().decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String createToken(String username, String userId, List<String> roles) { // userId의 타입을 String으로 변경
+    public String createToken(String username, String userId, List<String> roles) {
         Date now = new Date();
         return Jwts.builder()
-                .setSubject(username)
-                .claim("userId", userId) // 사용자 ID를 String으로 추가
-                .claim("roles", roles)
-                .issuedAt(now)
-                .expiration(new Date(now.getTime() + tokenValidMillisecond))
-                .signWith(getSigningKey())
-                .compact();
+            .setSubject(username)
+            .claim("userId", userId)
+            .claim("roles", roles)
+            .issuedAt(now)
+            .expiration(new Date(now.getTime() + tokenValidMillisecond))
+            .signWith(getSigningKey())
+            .compact();
     }
+
 
     public UsernamePasswordAuthenticationToken getAuthentication(String token) {
         String username = getUsername(token);

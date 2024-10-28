@@ -2,6 +2,7 @@ package com.spring.config;
 
 import com.spring.oauth2.CustomSuccessHandler;
 import com.spring.security.JwtAuthenticationFilter;
+import com.spring.security.social_jwt.JWTFilter;
 import com.spring.security.social_jwt.JWTUtil;
 import com.spring.service.CustomOAuth2UserService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -57,7 +58,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // JWT 사용 시 세션 관리 비활성화
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class) // JWT 필터 추가
+                .addFilterBefore(new JWTFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)// JWT 필터 추가
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(userInfoEndpointConfig -> userInfoEndpointConfig
                                 .userService(customOAuth2UserService))

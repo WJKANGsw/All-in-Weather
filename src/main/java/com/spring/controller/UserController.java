@@ -2,9 +2,14 @@ package com.spring.controller;
 
 import com.spring.model.HomeUser;
 import com.spring.model.UserDto;
+import com.spring.model.dto.request.auth.IdCheckRequestDto;
+import com.spring.model.dto.response.auth.IdCheckResponseDto;
 import com.spring.model.social_dto.CustomOAuth2User;
+import com.spring.model.social_dto.SocialUserDTO;
 import com.spring.security.JwtTokenProvider;
+import com.spring.service.AuthService;
 import com.spring.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,8 +29,18 @@ import java.util.Map;
 public class UserController {
     private final UserService userService;
     private final JwtTokenProvider jwtTokenProvider;
+    private final AuthService authService;
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class); // Logger 추가
+
+
+    @PostMapping("/id-check")
+    public ResponseEntity<? super IdCheckResponseDto> idCheck (
+        @RequestBody @Valid IdCheckRequestDto requestBody
+    ){
+        ResponseEntity<? super IdCheckResponseDto> response = authService.idCheck(requestBody);
+        return response;
+    }
 
     // 사용자 등록
     @PostMapping("/register")
@@ -56,7 +71,7 @@ public class UserController {
 
     // 사용자 업데이트
     @PutMapping("/update/{userId}")
-    public ResponseEntity<UserDto> updateUser(@PathVariable String userId, @RequestBody UserDto userDto) {
+    public ResponseEntity<UserDto> updateUser(@RequestBody UserDto userDto) {
         UserDto updatedUser = userService.updateUser(userDto.id(), userDto.userId(), userDto.username(), userDto.email(), userDto.password(), userDto.age());
         return ResponseEntity.ok(updatedUser);
     }
@@ -118,10 +133,11 @@ public class UserController {
 
         CustomOAuth2User user = (CustomOAuth2User) authentication.getPrincipal();
         Map<String, String> userInfo = new LinkedHashMap<>(); // 순서를 유지하는 LinkedHashMap
-        userInfo.put("username", user.getUsername());
+        userInfo.put("social_username", user.getUsername());
         userInfo.put("name", user.getName());
         userInfo.put("email", user.getEmail());
-        userInfo.put("role", user.getRole()); // 역할 추가
+        userInfo.put("role", user.getRole());
+        userInfo.put("nickname", user.getNickname()); // 닉네임 추가
 
         // 사용자 정보 로그 출력
         System.out.println("User Info: " + userInfo);
@@ -129,21 +145,18 @@ public class UserController {
         return ResponseEntity.ok(userInfo);
     }
 
-//    @PostMapping("/login/{provider}")
-//    public ResponseEntity<Map<String, Object>> socialLogin(@PathVariable String provider, @RequestBody Map<String, String> authData) {
-//        // provider에 따라 사용자를 인증하고 사용자 정보를 가져오는 로직
-//        String accessToken = authData.get("accessToken"); // 클라이언트에서 보낸 accessToken
-//        CustomOAuth2User user = userService.authenticateWithProvider(provider, accessToken); // 소셜 로그인 처리
-//
-//        if (user == null) {
-//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid provider or access token"));
-//        }
-//
-//        // JWT 토큰 생성
-//        String token = jwtTokenProvider.createToken(user.getUsername(), user.getUserId(), List.of(user.getRole().getValue()));
-//
-//        // 사용자 정보와 토큰을 포함한 응답
-//        return ResponseEntity.ok(Map.of("user", Map.of("username", user.getUsername()), "token", token));
-//    }
+    @PutMapping("/update/social/{username}")
+    public ResponseEntity<?> updateSocialUser(
+        @PathVariable String username,
+        @RequestBody SocialUserDTO socialUserDTO) {
+        try {
+            // 사용자 정보를 수정하는 서비스 호출
+            SocialUserDTO updatedUser = userService.updateSocialUser(username, socialUserDTO);
+            return ResponseEntity.ok(updatedUser); // 성공적으로 수정된 사용자 정보 반환
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("회원 정보 수정 중 오류가 발생했습니다."); // 오류 메시지 반환
+        }
+    }
 
 }

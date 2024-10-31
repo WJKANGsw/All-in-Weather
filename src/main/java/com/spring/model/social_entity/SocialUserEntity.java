@@ -16,10 +16,12 @@ public class SocialUserEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String username;
-    private String name;
+    private String username; // google + providerId
+    private String name; // 이름
 
-    private String email;
+    private String email; // 이메일 주소
 
-    private String role;
+    private String role; // ROLE_USER
+
+    private String nickname; // random Nickname
 }

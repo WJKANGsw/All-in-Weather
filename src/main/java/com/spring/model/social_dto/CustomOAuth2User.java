@@ -22,6 +22,7 @@ public class CustomOAuth2User implements OAuth2User {
         attributes.put("username", userDTO.getUsername());
         attributes.put("name", userDTO.getName());
         attributes.put("email", userDTO.getEmail());
+        attributes.put("nickname", userDTO.getNickname());
         return attributes;
     }
 
@@ -52,5 +53,9 @@ public class CustomOAuth2User implements OAuth2User {
 
     public String getRole() {
         return userDTO.getRole();
+    }
+
+    public String getNickname() {
+        return userDTO.getNickname();
     }
 }

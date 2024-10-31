@@ -68,12 +68,14 @@ public class JWTFilter extends OncePerRequestFilter {
             String name = jwtUtil.getName(token);
             String email = jwtUtil.getEmail(token);
             String role = jwtUtil.getRole(token);
+            String nickname = jwtUtil.getNickname(token);
 
             // 사용자 정보로 DTO 생성
             SocialUserDTO sc_userDTO = new SocialUserDTO();
             sc_userDTO.setUsername(username);
             sc_userDTO.setName(name);
             sc_userDTO.setEmail(email);
+            sc_userDTO.setNickname(nickname);
             sc_userDTO.setRole(role);
 
             // 사용자 인증 객체 생성

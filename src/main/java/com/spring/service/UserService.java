@@ -1,7 +1,10 @@
 package com.spring.service;
 
 import com.spring.model.*;
+import com.spring.model.social_dto.SocialUserDTO;
+import com.spring.model.social_entity.SocialUserEntity;
 import com.spring.repository.UserRepository;
+import com.spring.repository.social.SocialUserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -13,6 +16,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class UserService {
 
+    private final SocialUserRepository socialUserRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder; // BCryptPasswordEncoder 주입
 
@@ -94,4 +98,34 @@ public class UserService {
     public void deleteUser(Long id) {
         userRepository.deleteById(id);
     }
+
+    @Transactional
+    public SocialUserDTO updateSocialUser(String username, SocialUserDTO socialUserDTO) {
+        Optional<SocialUserEntity> socialUserOptional = Optional.ofNullable(socialUserRepository.findByUsername(username));
+
+        if (socialUserOptional.isPresent()) {
+            SocialUserEntity socialUser = socialUserOptional.get();
+
+            // 소셜 사용자 정보 업데이트
+            socialUser.setNickname(socialUserDTO.getNickname());
+            socialUser.setName(socialUserDTO.getName());
+            socialUser.setEmail(socialUserDTO.getEmail());
+
+            // 저장
+            socialUserRepository.save(socialUser);
+
+            // 기존 SocialUserDTO 객체에 값을 설정
+            socialUserDTO.setUsername(socialUser.getUsername());
+            socialUserDTO.setName(socialUser.getName());
+            socialUserDTO.setEmail(socialUser.getEmail());
+            socialUserDTO.setRole(socialUser.getRole());
+            socialUserDTO.setNickname(socialUser.getNickname());
+
+            return socialUserDTO; // 업데이트된 SocialUserDTO 반환
+        }
+        // 사용자 없을 경우 null 반환 (혹은 예외 처리 가능)
+        return null;
+    }
+
+
 }

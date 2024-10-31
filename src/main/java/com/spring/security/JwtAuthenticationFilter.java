@@ -32,12 +32,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (jwtTokenProvider.validateToken(token)) {
                 Authentication authentication = jwtTokenProvider.getAuthentication(token);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-                logger.info("유효한 토큰: {}", token); // 유효한 토큰 로그
+                logger.info("일반로그인 유효한 토큰: {}", token); // 유효한 토큰 로그
             } else {
-                logger.warn("유효하지 않은 토큰: {}", token); // 유효하지 않은 토큰 로그
+                logger.warn("일반로그인 유효하지 않은 토큰: {}", token); // 유효하지 않은 토큰 로그
             }
         } else {
-            logger.warn("토큰이 제공되지 않았습니다."); // 토큰 미제공 로그
+            logger.warn("일반로그인 토큰이 제공되지 않았습니다."); // 토큰 미제공 로그
         }
 
         filterChain.doFilter(request, response);

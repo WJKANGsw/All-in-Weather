@@ -34,13 +34,14 @@ public class CustomSuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String username = customUserDetails.getUsername();
         String email = customUserDetails.getEmail(); // 이메일 가져오기
         String name = customUserDetails.getName(); // 이름 가져오기
+        String nickname = customUserDetails.getNickname();
 
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
         Iterator<? extends GrantedAuthority> iterator = authorities.iterator();
         GrantedAuthority auth = iterator.next();
         String role = auth.getAuthority();
 
-        String token = jwtUtil.createJwt(username, role, name, email, 60 * 60 * 60 * 60L, "social");
+        String token = jwtUtil.createJwt(username, role, name, email, nickname ,60 * 60 * 60 * 60L, "social");
 
         response.addCookie(createCookie("Authorization", token));
         response.sendRedirect("http://localhost:5173/dashboard");

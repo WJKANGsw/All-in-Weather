@@ -10,7 +10,7 @@ import com.spring.model.social_dto.SocialUserDTO;
 import com.spring.model.social_entity.SocialUserEntity;
 import com.spring.repository.social.SocialUserRepository;
 import com.spring.security.JwtTokenProvider;
-import com.spring.service.AuthService;
+
 import com.spring.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -31,7 +31,7 @@ import java.util.Map;
 public class UserController {
     private final UserService userService;
     private final JwtTokenProvider jwtTokenProvider;
-    private final AuthService authService;
+
     private final SocialUserRepository socialUserRepository;
 
 

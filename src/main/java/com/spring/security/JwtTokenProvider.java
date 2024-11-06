@@ -46,7 +46,6 @@ public class JwtTokenProvider {
             .compact();
     }
 
-
     public UsernamePasswordAuthenticationToken getAuthentication(String token) {
         String username = getUsername(token);
         return new UsernamePasswordAuthenticationToken(username, null, null); // 권한 정보는 추후 추가 가능
@@ -59,15 +58,6 @@ public class JwtTokenProvider {
                 .parseSignedClaims(token)
                 .getBody();
         return claims.getSubject();
-    }
-
-    public String getUserId(String token) { // 반환 타입을 Long에서 String으로 변경
-        Claims claims = Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getBody();
-        return claims.get("userId", String.class); // 사용자 ID를 String으로 가져오기
     }
 
     public String resolveToken(HttpServletRequest request) {

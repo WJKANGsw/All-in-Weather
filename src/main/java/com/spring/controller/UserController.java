@@ -2,14 +2,16 @@ package com.spring.controller;
 
 import com.spring.model.HomeUser;
 import com.spring.model.UserDto;
+import com.spring.model.dto.request.auth.CheckCertificationRequestDto;
+import com.spring.model.dto.request.auth.EmailCertificationRequestDto;
 import com.spring.model.dto.request.auth.IdCheckRequestDto;
-import com.spring.model.dto.response.auth.IdCheckResponseDto;
 import com.spring.model.social_dto.CustomOAuth2User;
 import com.spring.model.social_dto.SocialUserDTO;
+import com.spring.model.social_entity.SocialUserEntity;
+import com.spring.repository.social.SocialUserRepository;
 import com.spring.security.JwtTokenProvider;
 import com.spring.service.AuthService;
 import com.spring.service.UserService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,17 +32,42 @@ public class UserController {
     private final UserService userService;
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthService authService;
+    private final SocialUserRepository socialUserRepository;
+
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class); // Logger 추가
 
 
-    @PostMapping("/id-check")
-    public ResponseEntity<? super IdCheckResponseDto> idCheck (
-        @RequestBody @Valid IdCheckRequestDto requestBody
-    ){
-        ResponseEntity<? super IdCheckResponseDto> response = authService.idCheck(requestBody);
-        return response;
+    @PostMapping("/check-userId")
+    public ResponseEntity<Boolean> checkUserId(@RequestBody IdCheckRequestDto requestDto) {
+        boolean exists = userService.userIdExists(requestDto.getUserId());
+        return new ResponseEntity<>(exists, HttpStatus.OK);
     }
+
+    @PostMapping("/send-verification-code")
+    public ResponseEntity<?> sendVerificationCode(@RequestBody EmailCertificationRequestDto requestDto) {
+        boolean isSent = userService.sendEmailCertification(requestDto.getId(), requestDto.getEmail());
+
+        if (!isSent) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("ID가 이미 존재하거나 메일 전송 실패");
+        }
+
+        return ResponseEntity.ok("인증 코드가 발송되었습니다.");
+    }
+
+    @PostMapping("/verify-code")
+    public ResponseEntity<?> verifyCode(@RequestBody CheckCertificationRequestDto requestDto) {
+        boolean isVerified = userService.verifyCertificationCode(
+            requestDto.getId(), requestDto.getEmail(), requestDto.getCertificationNumber()
+        );
+
+        if (!isVerified) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("인증 코드가 일치하지 않습니다.");
+        }
+
+        return ResponseEntity.ok("인증이 완료되었습니다.");
+    }
+
 
     // 사용자 등록
     @PostMapping("/register")
@@ -88,12 +115,12 @@ public class UserController {
     }
 
     // 사용자 삭제
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
-        userService.deleteUser(id);
-        logger.info("User deleted: {}", id); // 로그 추가
-        return ResponseEntity.noContent().build(); // 204 No Content
-    }
+//    @DeleteMapping("/{id}")
+//    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+//        userService.deleteUser(id);
+//        logger.info("User deleted: {}", id); // 로그 추가
+//        return ResponseEntity.noContent().build(); // 204 No Content
+//    }
 
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(@RequestBody UserDto userDto) {
@@ -128,10 +155,15 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
         }
 
-        // 인증 객체의 내용을 로그에 출력
-        System.out.println("Authentication: " + authentication);
-
+        // 사용자 이름을 통해 사용자 정보를 다시 가져옵니다.
         CustomOAuth2User user = (CustomOAuth2User) authentication.getPrincipal();
+        SocialUserEntity socialUserEntity = socialUserRepository.findByUsername(user.getUsername());
+
+        // 최신 사용자 정보로 갱신
+        user.setNickname(socialUserEntity.getNickname());
+        user.setName(socialUserEntity.getName());
+        user.setEmail(socialUserEntity.getEmail());
+
         Map<String, String> userInfo = new LinkedHashMap<>(); // 순서를 유지하는 LinkedHashMap
         userInfo.put("social_username", user.getUsername());
         userInfo.put("name", user.getName());
@@ -141,9 +173,9 @@ public class UserController {
 
         // 사용자 정보 로그 출력
         System.out.println("User Info: " + userInfo);
-
         return ResponseEntity.ok(userInfo);
     }
+
 
     @PutMapping("/update/social/{username}")
     public ResponseEntity<?> updateSocialUser(
@@ -156,6 +188,19 @@ public class UserController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("회원 정보 수정 중 오류가 발생했습니다."); // 오류 메시지 반환
+        }
+    }
+
+    // 소셜 사용자 탈퇴
+    @DeleteMapping("delete/social_user/{username}")
+    public ResponseEntity<Void> deleteSocialUser(@PathVariable String username) {
+        try {
+            userService.deleteSocialUser(username);
+            logger.info("Social user deleted: {}", username); // 로그 추가
+            return ResponseEntity.noContent().build(); // 성공시 204 No Content 반환
+        } catch (Exception e) {
+            logger.error("Error deleting social user: {}", username, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // 오류시 500 에러 반환
         }
     }
 

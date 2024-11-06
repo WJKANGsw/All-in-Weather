@@ -9,7 +9,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class CustomOAuth2User implements OAuth2User {
-
     private final SocialUserDTO userDTO;
 
     public CustomOAuth2User(SocialUserDTO userDTO) {
@@ -57,5 +56,18 @@ public class CustomOAuth2User implements OAuth2User {
 
     public String getNickname() {
         return userDTO.getNickname();
+    }
+
+    // 새로운 setter 메서드 추가
+    public void setNickname(String nickname) {
+        this.userDTO.setNickname(nickname);
+    }
+
+    public void setName(String name) {
+        this.userDTO.setName(name);
+    }
+
+    public void setEmail(String email) {
+        this.userDTO.setEmail(email);
     }
 }

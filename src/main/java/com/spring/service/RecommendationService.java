@@ -32,13 +32,17 @@ public class RecommendationService {
     if (user.isPresent()) {
       Recommendation recommendation = new Recommendation();
       recommendation.setUserId(user.get());
-      recommendation.setRecommendation(recommendationDto.recommendation());
+      recommendation.setRecStyle(recommendationDto.recStyle());
+      recommendation.setRecActivity(recommendationDto.recActivity());
+      recommendation.setTemp_high(recommendationDto.temp_high());
+      recommendation.setTemp_low(recommendationDto.temp_low());
       recommendation.setCreateDate(recommendationDto.createDate());
       recRepository.save(recommendation);
     } else {
       throw new IllegalArgumentException("Recommendation cannot be null");
     }
   }
+
 
   @Transactional
   public void saveRecommendationSocial(RecommendationSocialDto recommendationDto) {
@@ -62,11 +66,15 @@ public class RecommendationService {
         .map(recommendation -> new RecommendationDto(
             recommendation.getId(),
             recommendation.getUserId().getUserId(),
-            recommendation.getRecommendation(),
+            recommendation.getRecStyle(),
+            recommendation.getRecActivity(),
+            recommendation.getTemp_high(),
+            recommendation.getTemp_low(),
             recommendation.getCreateDate()
         ))
         .collect(Collectors.toList());
   }
+
 
   @Transactional
   public List<RecommendationSocialDto> getSocialRecommendations(String username) {

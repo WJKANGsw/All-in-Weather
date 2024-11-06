@@ -100,11 +100,22 @@ public class UserService {
         return passwordEncoder.matches(rawPassword, user.getPassword());
     }
 
-    // 사용자 삭제
+    // 일반로그인 사용자 삭제
     @Transactional
-    public void deleteUser(Long id) {
-        userRepository.deleteById(id);
+    public void deleteUser(String userId) {
+        HomeUser user = userRepository.findByUserId(userId)
+            .orElseThrow(() -> new UserNotFoundException("User not found"));
+        userRepository.delete(user);
     }
+
+    //일반로그인 비밀번호 검증
+    public boolean verifypassword(String userId, String rawPassword) {
+        HomeUser user = userRepository.findByUserId(userId)
+            .orElseThrow(() -> new UserNotFoundException("User not found"));
+        return passwordEncoder.matches(rawPassword, user.getPassword());
+    }
+
+
 
     @Transactional
     public SocialUserDTO updateSocialUser(String username, SocialUserDTO socialUserDTO) {

@@ -2,8 +2,6 @@ package com.spring.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -11,17 +9,17 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @Table(name = "homeuser")
-public class HomeUser {
+public class HomeUser{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false, unique = true, length = 50)
-    private String username;
+    private String username;  //  닉네임
 
     @Column(nullable = false, unique = true, length = 50)
-    private String userId;
+    private String userId; // ID
 
     @Column(nullable = false, length = 255)
     @JsonIgnore

@@ -24,10 +24,17 @@ public class Recommendation {
 //    @ManyToOne
 //    @JoinColumn(name = "username",referencedColumnName = "username", nullable = false)
 //    private SocialUserEntity username;
+    @Column(nullable = true)
+    private String recStyle;
 
-    @Column(nullable = false)
-    private String recommendation;
+    @Column(nullable = true)
+    private String recActivity;
 
+    @Column
+    private String temp_high;
+
+    @Column
+    private String temp_low;
     //날짜
     @CreationTimestamp
     @Column

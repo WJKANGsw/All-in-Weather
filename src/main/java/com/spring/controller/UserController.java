@@ -114,13 +114,20 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
-    // 사용자 삭제
-//    @DeleteMapping("/{id}")
-//    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
-//        userService.deleteUser(id);
-//        logger.info("User deleted: {}", id); // 로그 추가
-//        return ResponseEntity.noContent().build(); // 204 No Content
-//    }
+    // 일반로그인 탈퇴시 비밀번호 검증
+    @PostMapping("/verify-password")
+    public ResponseEntity<Void> verifyPassword(@RequestBody Map<String, String> request){
+        String userId = request.get("userId");
+        String password = request.get("password");
+
+
+        boolean isValid = userService.verifypassword(userId, password);
+        if (isValid){
+            return ResponseEntity.ok().build();
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+    }
 
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(@RequestBody UserDto userDto) {

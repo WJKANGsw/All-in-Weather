@@ -16,7 +16,7 @@ public class SocialUserEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String username; // google + providerId
+    private String userId; // google + providerId
     private String name; // 이름
 
     private String email; // 이메일 주소

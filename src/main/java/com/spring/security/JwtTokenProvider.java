@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,7 +23,7 @@ public class JwtTokenProvider {
     @Value("${springboot.jwt.secret}")
     private String secretKey;
 
-    private final long tokenValidMillisecond = 1000L * 60 * 60; // 1시간
+    private final long tokenValidMillisecond = 1000L * 60 * 60 * 60; // 1시간
 
     @PostConstruct
     protected void init() {
@@ -34,11 +35,10 @@ public class JwtTokenProvider {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String createToken(String username, String userId, List<String> roles) {
+    public String createToken( String userId, List<String> roles) {
         Date now = new Date();
         return Jwts.builder()
-            .setSubject(username)
-            .claim("userId", userId)
+            .setSubject(userId)
             .claim("roles", roles)
             .issuedAt(now)
             .expiration(new Date(now.getTime() + tokenValidMillisecond))
@@ -47,11 +47,11 @@ public class JwtTokenProvider {
     }
 
     public UsernamePasswordAuthenticationToken getAuthentication(String token) {
-        String username = getUsername(token);
-        return new UsernamePasswordAuthenticationToken(username, null, null); // 권한 정보는 추후 추가 가능
+        String userId = getUserId(token);
+        return new UsernamePasswordAuthenticationToken(userId, null, null); // 권한 정보는 추후 추가 가능
     }
 
-    public String getUsername(String token) {
+    public String getUserId(String token) {
         Claims claims = Jwts.parser()
                 .verifyWith(getSigningKey())
                 .build()
@@ -66,6 +66,16 @@ public class JwtTokenProvider {
             return token.substring(7);
         }
         return null;
+
+//        Cookie[] cookies = request.getCookies();
+//        if (cookies != null) {
+//            for (Cookie cookie : cookies) {
+//                if ("AccessToken".equals(cookie.getName())) {
+//                    return cookie.getValue();
+//                }
+//            }
+//        }
+//        return null;
     }
 
     public boolean validateToken(String token) {

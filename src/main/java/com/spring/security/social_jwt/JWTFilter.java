@@ -1,5 +1,6 @@
 package com.spring.security.social_jwt;
 
+import com.spring.model.AllUserDto;
 import com.spring.model.social_dto.CustomOAuth2User;
 import com.spring.model.social_dto.SocialUserDTO;
 import io.jsonwebtoken.Claims;
@@ -64,27 +65,27 @@ public class JWTFilter extends OncePerRequestFilter {
             }
 
             // 유효한 토큰이라면, 인증 정보 설정
-            String username = jwtUtil.getUsername(token);
+            String userId = jwtUtil.getUserId(token);
             String name = jwtUtil.getName(token);
             String email = jwtUtil.getEmail(token);
             String role = jwtUtil.getRole(token);
             String nickname = jwtUtil.getNickname(token);
 
             // 사용자 정보로 DTO 생성
-            SocialUserDTO sc_userDTO = new SocialUserDTO();
-            sc_userDTO.setUsername(username);
-            sc_userDTO.setName(name);
-            sc_userDTO.setEmail(email);
-            sc_userDTO.setNickname(nickname);
-            sc_userDTO.setRole(role);
+            AllUserDto userDto = new AllUserDto();
+            userDto.setUserId(userId);
+            userDto.setName(name);
+            userDto.setEmail(email);
+            userDto.setNickname(nickname);
+            userDto.setRole(role);
 
             // 사용자 인증 객체 생성
-            CustomOAuth2User customOAuth2User = new CustomOAuth2User(sc_userDTO);
+            CustomOAuth2User customOAuth2User = new CustomOAuth2User(userDto);
 
             // 스프링 시큐리티 인증 토큰 생성 및 설정
             Authentication authToken = new UsernamePasswordAuthenticationToken(customOAuth2User, null, customOAuth2User.getAuthorities());
             SecurityContextHolder.getContext().setAuthentication(authToken);
-            System.out.println("소셜 로그인 인증 완료: " + username);
+            System.out.println("소셜 로그인 인증 완료: " + userId);
         }
 
         filterChain.doFilter(request, response);

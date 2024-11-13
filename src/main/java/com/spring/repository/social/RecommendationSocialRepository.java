@@ -8,5 +8,5 @@ import java.util.List;
 
 
 public interface RecommendationSocialRepository extends JpaRepository<RecommendationSocial, Long> {
-  List<RecommendationSocial> findByUsername_Username(String username);
+  List<RecommendationSocial> findByUsername_UserId(String userId);
 }

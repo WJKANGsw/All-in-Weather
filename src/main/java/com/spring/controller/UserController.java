@@ -44,6 +44,13 @@ public class UserController {
         return new ResponseEntity<>(exists, HttpStatus.OK);
     }
 
+    @PostMapping("/check-email")
+    public ResponseEntity<Boolean> checkEmail(@RequestBody EmailCertificationRequestDto requestDto) {
+        boolean exists = userService.emailExists(requestDto.getEmail());
+        return new ResponseEntity<>(exists, HttpStatus.OK);
+    }
+
+
     @PostMapping("/send-verification-code")
     public ResponseEntity<?> sendVerificationCode(@RequestBody EmailCertificationRequestDto requestDto) {
         boolean isSent = userService.sendEmailCertification(requestDto.getId(), requestDto.getEmail());

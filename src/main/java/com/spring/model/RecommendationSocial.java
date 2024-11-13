@@ -22,7 +22,7 @@ public class RecommendationSocial {
 //    private HomeUser userId;
 
     @ManyToOne
-    @JoinColumn(name = "username",referencedColumnName = "username", nullable = false)
+    @JoinColumn(name = "userid",referencedColumnName = "userId", nullable = false)
     private SocialUserEntity username;
 
     @Column(nullable = false)

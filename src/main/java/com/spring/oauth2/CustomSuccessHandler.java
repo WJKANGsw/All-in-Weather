@@ -31,27 +31,39 @@ public class CustomSuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         //OAuth2User
         CustomOAuth2User customUserDetails = (CustomOAuth2User) authentication.getPrincipal();
 
-        String username = customUserDetails.getUsername();
-        String email = customUserDetails.getEmail(); // 이메일 가져오기
-        String name = customUserDetails.getName(); // 이름 가져오기
-        String nickname = customUserDetails.getNickname();
+        String name = customUserDetails.getName(); // 실명
+        String userId = customUserDetails.getUsername(); // google11020133301
+        String email = customUserDetails.getEmail(); // 이메일
+        String nickname = customUserDetails.getNickname(); // 랜덤닉네임
+
+        boolean profileComplete = customUserDetails.isProfileComplete();
+
+        if (userId == null || userId.isEmpty() || email == null || email.isEmpty() || name == null || name.isEmpty() || nickname == null || nickname.isEmpty()) {
+            System.out.println("Invalid user details: " + userId + ", " + name + ", " + email + ", " + nickname);
+            throw new IllegalArgumentException("User details are not properly set. Please check the user details.");
+        }
 
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
         Iterator<? extends GrantedAuthority> iterator = authorities.iterator();
         GrantedAuthority auth = iterator.next();
         String role = auth.getAuthority();
 
-        String token = jwtUtil.createJwt(username, role, name, email, nickname ,60 * 60 * 60 * 60L, "social");
+        String token = jwtUtil.createJwt(userId, role, name, email, nickname ,60 * 60 * 60 * 60L, "social");
 
         response.addCookie(createCookie("Authorization", token));
-        response.sendRedirect("http://localhost:5173/dashboard");
+        if (profileComplete) {
+            // 프로필이 완료된 경우 메인 페이지로 리다이렉트
+            response.sendRedirect("http://localhost:5173/dashboard");
+        } else {
+            // 추가 정보가 필요한 경우 사용자 정보 입력 페이지로 리다이렉트
+            response.sendRedirect("http://localhost:5173/addUserInfo");
+        }
     }
 
     private Cookie createCookie(String key, String value) {
 
         Cookie cookie = new Cookie(key, value);
         cookie.setMaxAge(60*60*60*60);
-        //cookie.setSecure(true);
         cookie.setPath("/");
         cookie.setHttpOnly(true);
 

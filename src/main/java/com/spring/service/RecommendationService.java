@@ -46,7 +46,7 @@ public class RecommendationService {
 
   @Transactional
   public void saveRecommendationSocial(RecommendationSocialDto recommendationDto) {
-    Optional<SocialUserEntity> socialuser = Optional.ofNullable(socialUserRepository.findByUsername(recommendationDto.username()));
+    Optional<SocialUserEntity> socialuser = Optional.ofNullable(socialUserRepository.findByUserId(recommendationDto.username()));
     if (socialuser.isPresent()) {
       RecommendationSocial recommendation = new RecommendationSocial();
       recommendation.setUsername(socialuser.get());
@@ -78,11 +78,11 @@ public class RecommendationService {
 
   @Transactional
   public List<RecommendationSocialDto> getSocialRecommendations(String username) {
-    return recSocialRepository.findByUsername_Username(username)
+    return recSocialRepository.findByUsername_UserId(username)
         .stream()
         .map(recommendation -> new RecommendationSocialDto(
             recommendation.getId(),
-            recommendation.getUsername().getUsername(),
+            recommendation.getUsername().getUserId(),
             recommendation.getRecommendation(),
             recommendation.getCreateDate()
         ))

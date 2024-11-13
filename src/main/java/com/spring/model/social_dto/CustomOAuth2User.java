@@ -1,5 +1,7 @@
 package com.spring.model.social_dto;
 
+import com.spring.model.AllUserDto;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 
@@ -8,20 +10,19 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+@RequiredArgsConstructor
 public class CustomOAuth2User implements OAuth2User {
-    private final SocialUserDTO userDTO;
+    private final AllUserDto userDTO;
 
-    public CustomOAuth2User(SocialUserDTO userDTO) {
-        this.userDTO = userDTO;
-    }
 
     @Override
     public Map<String, Object> getAttributes() {
         Map<String, Object> attributes = new HashMap<>();
-        attributes.put("username", userDTO.getUsername());
+        attributes.put("userId", userDTO.getUserId());
         attributes.put("name", userDTO.getName());
         attributes.put("email", userDTO.getEmail());
         attributes.put("nickname", userDTO.getNickname());
+        attributes.put("profileComplete", userDTO.isProfileComplete()); // 추가 정보 여부 추가
         return attributes;
     }
 
@@ -39,11 +40,12 @@ public class CustomOAuth2User implements OAuth2User {
 
     @Override
     public String getName() {
-        return userDTO.getName();
+        String name = userDTO.getName();
+        return name != null && !name.isEmpty() ? name : "defaultName";
     }
 
     public String getUsername() {
-        return userDTO.getUsername();
+        return userDTO.getUserId();
     }
 
     public String getEmail() {
@@ -56,6 +58,11 @@ public class CustomOAuth2User implements OAuth2User {
 
     public String getNickname() {
         return userDTO.getNickname();
+    }
+
+    // 추가 정보 여부 반환 메서드 추가
+    public boolean isProfileComplete() {
+        return userDTO.isProfileComplete();
     }
 
     // 새로운 setter 메서드 추가

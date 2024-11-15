@@ -8,5 +8,5 @@ import java.util.List;
 
 @Repository
 public interface UserStyleRepository extends JpaRepository<UserStyle, Long> {
-  List<UserStyle> findByUserUserId(String userId);
+  List<UserStyle> findByUserId_UserId(String userId);
 }

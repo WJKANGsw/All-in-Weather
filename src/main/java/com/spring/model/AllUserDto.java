@@ -58,6 +58,8 @@ public class AllUserDto {
   }
 
 
+  public AllUserDto(String userId, String nickname, String email, Integer age, String gender, Double height, Double weight) {
+  }
 }
 
 

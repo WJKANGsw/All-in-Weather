@@ -108,7 +108,7 @@ public class AllUserService {
 
     for (String style : styles) {
       UserStyle userStyle = new UserStyle();
-      userStyle.setUser(user);
+      userStyle.setUserId(user);
       userStyle.setStyle(style);
       userStyleRepository.save(userStyle);
     }

@@ -154,10 +154,11 @@ public class UserController {
             });
     }
 
-    // 사용자 업데이트
+    // 통합된 allUser 사용자 업데이트
     @PutMapping("/update/{userId}")
-    public ResponseEntity<UserDto> updateUser(@RequestBody UserDto userDto) {
-        UserDto updatedUser = userService.updateUser(userDto.id(), userDto.userId(), userDto.username(), userDto.email(), userDto.password(), userDto.age());
+    public ResponseEntity<AllUserDto> updateUser(@RequestBody AllUserDto userDto) {
+        AllUserDto updatedUser = userService.updateUser(userDto.getUserId(), userDto.getNickname(),userDto.getEmail(),userDto.getAge(),
+                                                        userDto.getGender(),userDto.getHeight(),userDto.getWeight());
         return ResponseEntity.ok(updatedUser);
     }
 
@@ -291,6 +292,10 @@ public class UserController {
         user.setName(updatedUser.getName());
         user.setEmail(updatedUser.getEmail());
 
+        boolean profileComplete = user.isProfileComplete();
+        System.out.println("Profile Complete in UserController Status: " + profileComplete);  // 디버깅용 로그 추가
+
+
         // 사용자 정보 맵에 추가
         Map<String, Object> userInfo = new LinkedHashMap<>();
         userInfo.put("social_userId", user.getUsername());
@@ -298,20 +303,20 @@ public class UserController {
         userInfo.put("email", user.getEmail());
         userInfo.put("role", user.getRole());
         userInfo.put("social_nickname", user.getNickname());
-        userInfo.put("isSocialUserComplete",user.isProfileComplete());  // 추가 정보 여부 추가
+        userInfo.put("isSocialUserComplete",profileComplete);  // 추가 정보 여부 추가
 
         // 사용자 정보 로그 출력
         System.out.println("User Info: " + userInfo);
         return ResponseEntity.ok(userInfo);
     }
 
-    @PutMapping("/update/social/{username}")
+    @PutMapping("/update/social/{userId}")
     public ResponseEntity<?> updateSocialUser(
-        @PathVariable String username,
+        @PathVariable String userId,
         @RequestBody SocialUserDTO socialUserDTO) {
         try {
             // 사용자 정보를 수정하는 서비스 호출
-            SocialUserDTO updatedUser = userService.updateSocialUser(username, socialUserDTO);
+            SocialUserDTO updatedUser = userService.updateSocialUser(userId, socialUserDTO);
             return ResponseEntity.ok(updatedUser); // 성공적으로 수정된 사용자 정보 반환
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -333,8 +338,31 @@ public class UserController {
     }
 
     @PostMapping("/style")
-    public ResponseEntity<String> saveUserStyles(@RequestParam String userId, @RequestBody List<String> styles) {
-        allUserService.saveUserStyles(userId, styles);
-        return ResponseEntity.ok("User styles saved successfully!");
+    public ResponseEntity<String> saveUserStyles(@RequestBody Map<String, Object> requestData) {
+        try {
+            String userId = (String) requestData.get("userId");
+            String socialUserId = (String) requestData.get("social_userId");
+            List<?> rawStyles = (List<?>) requestData.get("preferences");
+
+            if (userId == null && socialUserId == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Missing user ID or social user ID");
+            }
+
+            // 스트림을 사용하여 String 타입 요소만 필터링
+            List<String> styles = rawStyles.stream()
+                .filter(item -> item instanceof String)
+                .map(item -> (String) item)
+                .toList();
+
+            if (userId != null) {
+                allUserService.saveUserStyles(userId, styles);
+            } else {
+                allUserService.saveUserStyles(socialUserId, styles);
+            }
+            return ResponseEntity.ok("User styles saved successfully!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid data format");
+        }
     }
 }

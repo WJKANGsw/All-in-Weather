@@ -23,6 +23,9 @@ public class CustomOAuth2User implements OAuth2User {
         attributes.put("email", userDTO.getEmail());
         attributes.put("nickname", userDTO.getNickname());
         attributes.put("profileComplete", userDTO.isProfileComplete()); // 추가 정보 여부 추가
+
+        System.out.println("Returning attributes: " + attributes);  // 로그 추가
+
         return attributes;
     }
 

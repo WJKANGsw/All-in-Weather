@@ -69,7 +69,7 @@ public class SecurityConfig {
                         .successHandler(customSuccessHandler)
                 )
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/api/users/addUserInfo/**","/api/users/register","/api/users/send-verification-code","/api/users/verify-code", "/api/users/check-userId", "/api/users/check-email","/api/users/login","/api/chat/**", "/api/users/style").permitAll() // 사용자 등록 및 로그인 허용
+                        .requestMatchers("/api/users/addUserInfo/**","/api/users/register","/api/users/send-verification-code","/api/users/verify-code", "/api/users/check-userId","api/users/show/", "/api/users/check-email","/api/users/style","api/users/style/","/api/users/login","/api/chat/**").permitAll() // 사용자 등록 및 로그인 허용
                         .requestMatchers("/").permitAll()
                         .anyRequest().authenticated() // 나머지 요청은 인증 필요
                 )
@@ -87,10 +87,9 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of("http://localhost:5173")); // React 앱의 출처
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS")); // 허용할 메서드
-        configuration.setAllowedHeaders(List.of("*")); // 허용할 헤더
-        configuration.setAllowCredentials(true); // 자격 증명 허용
-//        configuration.setExposedHeaders(Arrays.asList("Authorization", "Set-Cookie"));
-//        configuration.setMaxAge(3600L);
+        configuration.setAllowedHeaders(List.of("*")); // 허용할 헤더 configuration.setAllowCredentials(true);
+        //configuration.setExposedHeaders(Arrays.asList("Authorization", "Set-Cookie"));
+        //configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", configuration); // CORS 설정 등록

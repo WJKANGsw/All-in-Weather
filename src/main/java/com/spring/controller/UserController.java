@@ -7,12 +7,9 @@ import com.spring.model.dto.request.auth.IdCheckRequestDto;
 import com.spring.model.social_dto.CustomOAuth2User;
 import com.spring.model.social_dto.SocialUserDTO;
 import com.spring.repository.AllUserRepository;
-import com.spring.repository.social.SocialUserRepository;
 import com.spring.security.JwtTokenProvider;
 import com.spring.service.AllUserService;
 import com.spring.service.UserService;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +32,7 @@ public class UserController {
     private final AllUserService allUserService;
     private final JwtTokenProvider jwtTokenProvider;
 
-    private final SocialUserRepository socialUserRepository;
+//    private final SocialUserRepository socialUserRepository;
 
     private final AllUserRepository allUserRepository;
 
@@ -157,10 +154,11 @@ public class UserController {
             });
     }
 
-    // 사용자 업데이트
+    // 통합된 allUser 사용자 업데이트
     @PutMapping("/update/{userId}")
-    public ResponseEntity<UserDto> updateUser(@RequestBody UserDto userDto) {
-        UserDto updatedUser = userService.updateUser(userDto.id(), userDto.userId(), userDto.username(), userDto.email(), userDto.password(), userDto.age());
+    public ResponseEntity<AllUserDto> updateUser(@RequestBody AllUserDto userDto) {
+        AllUserDto updatedUser = userService.updateUser(userDto.getUserId(), userDto.getNickname(),userDto.getEmail(),userDto.getAge(),
+                                                        userDto.getGender(),userDto.getHeight(),userDto.getWeight());
         return ResponseEntity.ok(updatedUser);
     }
 
@@ -168,8 +166,8 @@ public class UserController {
     @PutMapping("/password/{userId}")
     public ResponseEntity<Void> updatePassword(@PathVariable String userId, @RequestBody Map<String, String> requestBody) {
         String password = requestBody.get("password");
-        userService.updatePassword(userId, password);
-        UserDto updatedUser = userService.updateUserId(userId); // 새로운 userId로 업데이트
+        allUserService.updatePassword(userId, password);
+        AllUserDto updatedUser = allUserService.updateUserId(userId); // 새로운 userId로 업데이트
         logger.info("Password updated for user: {}", password);
         logger.info("UserId updated for user: {}", userId);
         return ResponseEntity.noContent().build();
@@ -182,7 +180,7 @@ public class UserController {
         String password = request.get("password");
 
 
-        boolean isValid = userService.verifypassword(userId, password);
+        boolean isValid = allUserService.verifypassword(userId, password);
         if (isValid){
             return ResponseEntity.ok().build();
         } else {
@@ -294,6 +292,10 @@ public class UserController {
         user.setName(updatedUser.getName());
         user.setEmail(updatedUser.getEmail());
 
+        boolean profileComplete = user.isProfileComplete();
+        System.out.println("Profile Complete in UserController Status: " + profileComplete);  // 디버깅용 로그 추가
+
+
         // 사용자 정보 맵에 추가
         Map<String, Object> userInfo = new LinkedHashMap<>();
         userInfo.put("social_userId", user.getUsername());
@@ -301,21 +303,20 @@ public class UserController {
         userInfo.put("email", user.getEmail());
         userInfo.put("role", user.getRole());
         userInfo.put("social_nickname", user.getNickname());
-        userInfo.put("isSocialUserComplete",user.isProfileComplete());  // 추가 정보 여부 추가
+        userInfo.put("isSocialUserComplete",profileComplete);  // 추가 정보 여부 추가
 
         // 사용자 정보 로그 출력
         System.out.println("User Info: " + userInfo);
         return ResponseEntity.ok(userInfo);
     }
 
-
-    @PutMapping("/update/social/{username}")
+    @PutMapping("/update/social/{userId}")
     public ResponseEntity<?> updateSocialUser(
-        @PathVariable String username,
+        @PathVariable String userId,
         @RequestBody SocialUserDTO socialUserDTO) {
         try {
             // 사용자 정보를 수정하는 서비스 호출
-            SocialUserDTO updatedUser = userService.updateSocialUser(username, socialUserDTO);
+            SocialUserDTO updatedUser = userService.updateSocialUser(userId, socialUserDTO);
             return ResponseEntity.ok(updatedUser); // 성공적으로 수정된 사용자 정보 반환
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -332,6 +333,19 @@ public class UserController {
             return ResponseEntity.noContent().build(); // 성공시 204 No Content 반환
         } catch (Exception e) {
             logger.error("Error deleting social user: {}", username, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // 오류시 500 에러 반환
+        }
+    }
+
+    // allUser 사용자 삭제
+    @DeleteMapping("delete/{userId}")
+    public ResponseEntity<Void> deleteAllUser(@PathVariable String userId) {
+        try {
+            allUserService.deleteUser(userId);
+            logger.info("alluser deleted: {}", userId); // 로그 추가
+            return ResponseEntity.noContent().build(); // 성공시 204 No Content 반환
+        } catch (Exception e) {
+            logger.error("Error deleting social user: {}", userId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // 오류시 500 에러 반환
         }
     }
@@ -358,4 +372,14 @@ public class UserController {
         }
     }
 
+    @GetMapping("/style/{userId}")
+    public ResponseEntity<List<UserStyle>> getUserStyle(@PathVariable("userId") String userId) {
+        List<UserStyle> userStyles = allUserService.getUserStyle(userId);
+        if (userStyles != null && !userStyles.isEmpty()) {
+            return ResponseEntity.ok(userStyles); // 스타일 리스트 반환
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null); // 스타일이 없으면 404 반환
+        }
+
+    }
 }

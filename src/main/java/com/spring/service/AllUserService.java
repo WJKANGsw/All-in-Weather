@@ -1,12 +1,14 @@
 package com.spring.service;
 
 import com.spring.model.*;
+import com.spring.model.social_entity.SocialUserEntity;
 import com.spring.repository.AllUserRepository;
 import com.spring.repository.UserStyleRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -63,19 +65,60 @@ public class AllUserService {
         + (int) (Math.random() * 1000);
   }
 
+  // 일반로그인 아이디 변경
+  public AllUserDto updateUserId(String userId){
+    Optional<AllUser> userOptional = userRepository.findByUserId(userId);
+    if (userOptional.isPresent()) {
+      AllUser user = userOptional.get();
+      user.setUserId(userId);
+
+      userRepository.save(user);
+      return new AllUserDto(user.getUserId(), user.getNickname(),user.getEmail(),user.getAge(),
+          user.getGender(),user.getHeight(),user.getWeight());}
+    return null;
+  }
+
   // 사용자 비밀번호 해시화
   private String hashPassword(String password) {
     return new BCryptPasswordEncoder().encode(password);
   }
 
+  // 비밀번호 업데이트
+  @Transactional
+  public void updatePassword(String userId, String newPassword) {
+    AllUser user = userRepository.findByUserId(userId)
+        .orElseThrow(() -> new UserNotFoundException("User not found"));
+    user.setPassword(hashPassword(newPassword)); // 비밀번호 해시화
+  }
+
+
+  public boolean checkPassword(AllUser user, String rawPassword) {
+    return passwordEncoder.matches(rawPassword, user.getPassword());
+  }
+
+  // allUser 일반로그인 사용자 탈퇴시 비밀번호 검증
+  public boolean verifypassword(String userId, String rawPassword) {
+    AllUser user = userRepository.findByUserId(userId)
+        .orElseThrow(() -> new UserNotFoundException("User not found"));
+    return passwordEncoder.matches(rawPassword, user.getPassword());
+  }
 
   public Optional<AllUser> getUserByUserId(String userId) {
     return userRepository.findByUserId(userId); // userId로 사용자 찾기
   }
 
-  public boolean checkPassword(AllUser user, String rawPassword) {
-    return passwordEncoder.matches(rawPassword, user.getPassword());
+  @Transactional
+  public void deleteUser(String userId) {
+    userStyleRepository.deleteByUserId_UserId(userId);
+    Optional<AllUser> user = userRepository.findByUserId(userId);
+    if (user.isPresent()) {
+      userRepository.delete(user.get()); // Optional에서 get()을 사용하여 엔티티를 꺼냄
+      logger.info("Deleted social user with username: {}", userId);
+    } else {
+      throw new UsernameNotFoundException("Social user not found");
+    }
   }
+
 
   // 회원가입 후 추가정보 받아서 업데이트
   public AllUser updateUserInfo(String userId, AllUserDto userDto) throws UserNotFoundException {
@@ -112,6 +155,16 @@ public class AllUserService {
       userStyle.setUserId(user);
       userStyle.setStyle(style);
       userStyleRepository.save(userStyle);
+    }
+  }
+
+  // 사용자 스타일 가져오기
+  public List<UserStyle> getUserStyle(String userId) {
+    List<UserStyle> userStyles = userStyleRepository.findByUserId_UserId(userId);
+    if (!userStyles.isEmpty()) {
+      return userStyles;
+    } else {
+      return null; // 스타일이 없는 경우
     }
   }
 }

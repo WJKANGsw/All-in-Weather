@@ -38,6 +38,9 @@ public class CustomSuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         boolean profileComplete = customUserDetails.isProfileComplete();
 
+        System.out.println("Profile complete status in success handler: " + profileComplete);  // 로그 추가
+
+
         if (userId == null || userId.isEmpty() || email == null || email.isEmpty() || name == null || name.isEmpty() || nickname == null || nickname.isEmpty()) {
             System.out.println("Invalid user details: " + userId + ", " + name + ", " + email + ", " + nickname);
             throw new IllegalArgumentException("User details are not properly set. Please check the user details.");
@@ -48,7 +51,7 @@ public class CustomSuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         GrantedAuthority auth = iterator.next();
         String role = auth.getAuthority();
 
-        String token = jwtUtil.createJwt(userId, role, name, email, nickname ,60 * 60 * 60 * 60L, "social");
+        String token = jwtUtil.createJwt(userId, role, name, email, nickname ,60 * 60 * 60 * 60L, "social",profileComplete);
 
         response.addCookie(createCookie("Authorization", token));
         if (profileComplete) {
@@ -65,7 +68,7 @@ public class CustomSuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         Cookie cookie = new Cookie(key, value);
         cookie.setMaxAge(60*60*60*60);
         cookie.setPath("/");
-        cookie.setHttpOnly(true);
+        //cookie.setHttpOnly(true);
 
         return cookie;
     }

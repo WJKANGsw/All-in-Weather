@@ -70,6 +70,7 @@ public class JWTFilter extends OncePerRequestFilter {
             String email = jwtUtil.getEmail(token);
             String role = jwtUtil.getRole(token);
             String nickname = jwtUtil.getNickname(token);
+            boolean profileComplete = jwtUtil.isProfileComplete(token);  // profileComplete 가져오기
 
             // 사용자 정보로 DTO 생성
             AllUserDto userDto = new AllUserDto();
@@ -78,6 +79,7 @@ public class JWTFilter extends OncePerRequestFilter {
             userDto.setEmail(email);
             userDto.setNickname(nickname);
             userDto.setRole(role);
+            userDto.setProfileComplete(profileComplete);  // profileComplete 정보 설정
 
             // 사용자 인증 객체 생성
             CustomOAuth2User customOAuth2User = new CustomOAuth2User(userDto);

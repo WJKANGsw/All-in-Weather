@@ -100,6 +100,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
             // 프로필이 완료되었는지 확인
             boolean profileComplete = isProfileComplete(existingUser);
+            System.out.println("Existing user, profileComplete = " + profileComplete);
 
             // DTO로 변환하여 OAuth2User 반환
             AllUserDto userDto = new AllUserDto(

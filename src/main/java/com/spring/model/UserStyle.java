@@ -12,8 +12,8 @@ public class UserStyle {
   private Long id;
 
   @ManyToOne
-  @JoinColumn(name = "user_id", nullable = false)
-  private AllUser user;
+  @JoinColumn(name = "userId",referencedColumnName = "userId", nullable = false)
+  private AllUser userId;
 
   private String style;
 

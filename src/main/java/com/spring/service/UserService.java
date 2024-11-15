@@ -25,6 +25,7 @@ public class UserService {
 
     private final SocialUserRepository socialUserRepository;
     private final UserRepository userRepository;
+    private final AllUserRepository allUserRepository;
     private final PasswordEncoder passwordEncoder; // BCryptPasswordEncoder 주입
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
     private final CertificationRepository certificationRepository; // 인증 레포지토리 주입
@@ -47,21 +48,21 @@ public class UserService {
     }
 
     // 사용자 업데이트
-    public UserDto updateUser(Long id, String userId, String username, String email, String password, Integer age) {
-        Optional<HomeUser> userOptional = userRepository.findById(id);
+    public AllUserDto updateUser(String userId, String nickname, String email, Integer age, String gender, Double height, Double weight) {
+        Optional<AllUser> userOptional = allUserRepository.findByUserId(userId);
         if (userOptional.isPresent()) {
-            HomeUser user = userOptional.get();
+            AllUser user = userOptional.get();
             user.setUserId(userId);
-            user.setUsername(username);
+            user.setNickname(nickname);
             user.setEmail(email);
-            user.setAge(age); // 나이 업데이트
+            user.setAge(age);
+            user.setGender(gender);
+            user.setHeight(height);
+            user.setWeight(weight);
 
-            if (password != null) {
-                user.setPassword(hashPassword(password));
-            }
-
-            userRepository.save(user);
-            return new UserDto(user.getId(), user.getUsername(), user.getUserId(), user.getEmail(), null, user.getAge());
+            allUserRepository.save(user);
+            return new AllUserDto(user.getUserId(), user.getNickname(),user.getEmail(),user.getAge(),
+                                user.getGender(),user.getHeight(),user.getWeight());
         }
         return null;
     }

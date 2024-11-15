@@ -9,4 +9,8 @@ import java.util.List;
 @Repository
 public interface UserStyleRepository extends JpaRepository<UserStyle, Long> {
   List<UserStyle> findByUserId_UserId(String userId);
+
+  void deleteByUserId_UserId(String userId);
+
+  //UserStyle findByUserId_UserId(String userId);
 }

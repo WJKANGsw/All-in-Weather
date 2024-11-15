@@ -7,12 +7,9 @@ import com.spring.model.dto.request.auth.IdCheckRequestDto;
 import com.spring.model.social_dto.CustomOAuth2User;
 import com.spring.model.social_dto.SocialUserDTO;
 import com.spring.repository.AllUserRepository;
-import com.spring.repository.social.SocialUserRepository;
 import com.spring.security.JwtTokenProvider;
 import com.spring.service.AllUserService;
 import com.spring.service.UserService;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -166,8 +163,8 @@ public class UserController {
     @PutMapping("/password/{userId}")
     public ResponseEntity<Void> updatePassword(@PathVariable String userId, @RequestBody Map<String, String> requestBody) {
         String password = requestBody.get("password");
-        userService.updatePassword(userId, password);
-        UserDto updatedUser = userService.updateUserId(userId); // 새로운 userId로 업데이트
+        allUserService.updatePassword(userId, password);
+        AllUserDto updatedUser = allUserService.updateUserId(userId); // 새로운 userId로 업데이트
         logger.info("Password updated for user: {}", password);
         logger.info("UserId updated for user: {}", userId);
         return ResponseEntity.noContent().build();
@@ -180,7 +177,7 @@ public class UserController {
         String password = request.get("password");
 
 
-        boolean isValid = userService.verifypassword(userId, password);
+        boolean isValid = allUserService.verifypassword(userId, password);
         if (isValid){
             return ResponseEntity.ok().build();
         } else {
@@ -337,6 +334,19 @@ public class UserController {
         }
     }
 
+    // allUser 사용자 삭제
+    @DeleteMapping("delete/{userId}")
+    public ResponseEntity<Void> deleteAllUser(@PathVariable String userId) {
+        try {
+            allUserService.deleteUser(userId);
+            logger.info("alluser deleted: {}", userId); // 로그 추가
+            return ResponseEntity.noContent().build(); // 성공시 204 No Content 반환
+        } catch (Exception e) {
+            logger.error("Error deleting social user: {}", userId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // 오류시 500 에러 반환
+        }
+    }
+
     @PostMapping("/style")
     public ResponseEntity<String> saveUserStyles(@RequestBody Map<String, Object> requestData) {
         try {
@@ -365,4 +375,15 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid data format");
         }
     }
+
+    @GetMapping("/style/{userId}")
+    public ResponseEntity<List<UserStyle>> getUserStyle(@PathVariable("userId") String userId) {
+        List<UserStyle> userStyles = allUserService.getUserStyle(userId);
+        if (userStyles != null && !userStyles.isEmpty()) {
+            return ResponseEntity.ok(userStyles); // 스타일 리스트 반환
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null); // 스타일이 없으면 404 반환
+        }
+    }
+
 }

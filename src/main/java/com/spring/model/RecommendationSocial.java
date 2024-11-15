@@ -22,7 +22,7 @@ public class RecommendationSocial {
 //    private HomeUser userId;
 
     @ManyToOne
-    @JoinColumn(name = "username",referencedColumnName = "username", nullable = false)
+    @JoinColumn(name = "userid",referencedColumnName = "userId", nullable = false)
     private SocialUserEntity username;
 
     @Column(nullable = false)
@@ -33,4 +33,5 @@ public class RecommendationSocial {
     @Column
     @DateTimeFormat(pattern = "yyyy-MM-dd/HH:mm")
     private LocalDateTime createDate;
+
 }

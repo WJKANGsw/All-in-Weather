@@ -1,23 +1,26 @@
 package com.spring.service;
 
+import com.spring.model.AllUser;
+import com.spring.model.AllUserDto;
+import com.spring.model.LoginType;
+import com.spring.model.UserRole;
 import com.spring.model.social_dto.*;
-import com.spring.model.social_entity.SocialUserEntity;
-import com.spring.repository.UserRepository;
-import com.spring.repository.social.SocialUserRepository;
+import com.spring.repository.AllUserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.util.Optional;
+
 @Service
+@RequiredArgsConstructor
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
-    private final SocialUserRepository userRepository;
-
-    public CustomOAuth2UserService(SocialUserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
+    private final AllUserRepository userRepository;
 
     private String generateRandomNickname() {
         String[] adjectives = {"행복한", "멋진", "빛나는", "용감한", "지혜로운"}; // 한글 형용사
@@ -28,6 +31,14 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         return adjectives[randomAdjectiveIndex] + nouns[randomNounIndex] + randomNumber; // 조합
     }
+
+    private boolean isProfileComplete(AllUser user) {
+        return user.getAge() != null &&
+            user.getGender() != null &&
+            user.getHeight() != null &&
+            user.getWeight() != null;
+    }
+
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
 
@@ -49,42 +60,58 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             return null;
         }
         String username = oAuth2Response.getProvider()+oAuth2Response.getProviderId();
-        SocialUserEntity existData = userRepository.findByUsername(username);
+        Optional<AllUser> existData = userRepository.findByUserId(username);
 
-        if (existData == null) {  // 신규 사용자 등록
-            SocialUserEntity sc_userEntity = new SocialUserEntity();
-            sc_userEntity.setUsername(username);
-            sc_userEntity.setName(oAuth2Response.getName());
-            sc_userEntity.setEmail(oAuth2Response.getEmail());
-            sc_userEntity.setRole("ROLE_USER");
+        if (existData.isEmpty()) {  // 신규 사용자 등록
+            AllUser newUser = new AllUser();
 
-            // 랜덤 닉네임 생성 후 저장
-            sc_userEntity.setNickname(generateRandomNickname());
+            newUser.setUserId(username);
+            newUser.setProvider(LoginType.valueOf(oAuth2Response.getProvider().toUpperCase()));// 소셜 로그인 방법 설정
+            newUser.setName(oAuth2Response.getName());
+            newUser.setEmail(oAuth2Response.getEmail());
+            newUser.setNickname(generateRandomNickname());
+            newUser.setRole(UserRole.USER);
 
-            userRepository.save(sc_userEntity);
+            newUser.setAge(null);
+            newUser.setGender(null);
+            newUser.setHeight(null);
+            newUser.setWeight(null);
+            newUser.setPassword(null); // 소셜 로그인에서는 비밀번호가 필요 없으므로 null
+            newUser.setRegistrationDate(LocalDate.now());
 
-            SocialUserDTO sc_userDTO = new SocialUserDTO();
-            sc_userDTO.setUsername(username);
-            sc_userDTO.setName(oAuth2Response.getName());
-            sc_userDTO.setEmail(oAuth2Response.getEmail());
-            sc_userDTO.setNickname(generateRandomNickname());
-            sc_userDTO.setRole("ROLE_USER");
+            userRepository.save(newUser);
 
-            return new CustomOAuth2User(sc_userDTO);
+            AllUserDto userDto = new AllUserDto(
+                newUser.getUserId(),
+                null, // 비밀번호는 null
+                newUser.getEmail(),
+                newUser.getNickname(),
+                false
+            );
+
+            return new CustomOAuth2User(userDto);
         }
         else { // 기존 사용자 업데이트
-            existData.setName(oAuth2Response.getName());
-            existData.setEmail(oAuth2Response.getEmail());
-            userRepository.save(existData);
+            AllUser existingUser = existData.get(); // Optional에서 실제 객체를 가져옵니다.
+            existingUser.setEmail(oAuth2Response.getEmail());
+            existingUser.setName(oAuth2Response.getName());
+            existingUser.setNickname(generateRandomNickname()); // 랜덤 닉네임 생성 (필요 시)
+            userRepository.save(existingUser);
 
-            SocialUserDTO sc_userDTO = new SocialUserDTO();
-            sc_userDTO.setUsername(existData.getUsername());
-            sc_userDTO.setName(oAuth2Response.getName());
-            sc_userDTO.setEmail(oAuth2Response.getEmail()); // 이메일 추가
-            sc_userDTO.setNickname(existData.getNickname());
-            sc_userDTO.setRole(existData.getRole());
+            // 프로필이 완료되었는지 확인
+            boolean profileComplete = isProfileComplete(existingUser);
+            System.out.println("Existing user, profileComplete = " + profileComplete);
 
-            return new CustomOAuth2User(sc_userDTO);
+            // DTO로 변환하여 OAuth2User 반환
+            AllUserDto userDto = new AllUserDto(
+                existingUser.getUserId(),
+                null, // 비밀번호는 null
+                existingUser.getEmail(),
+                existingUser.getNickname(),
+                profileComplete
+            );
+
+            return new CustomOAuth2User(userDto);
         }
     }
 }

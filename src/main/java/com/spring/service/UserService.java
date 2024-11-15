@@ -5,6 +5,7 @@ import com.spring.model.*;
 import com.spring.model.social_dto.SocialUserDTO;
 import com.spring.model.social_entity.SocialUserEntity;
 import com.spring.provider.EmailProvider;
+import com.spring.repository.AllUserRepository;
 import com.spring.repository.CertificationRepository;
 import com.spring.repository.UserRepository;
 import com.spring.repository.social.SocialUserRepository;
@@ -24,13 +25,14 @@ public class UserService {
 
     private final SocialUserRepository socialUserRepository;
     private final UserRepository userRepository;
+    private final AllUserRepository allUserRepository;
     private final PasswordEncoder passwordEncoder; // BCryptPasswordEncoder 주입
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
     private final CertificationRepository certificationRepository; // 인증 레포지토리 주입
     private final EmailProvider emailProvider; // 이메일 전송 컴포넌트 주입
 
 
-    // 사용자 등록
+    // homeuser 사용자 등록
     @Transactional
     public UserDto createUser(String username, String userId, String password, String email, Integer age) {
         String hashedPassword = hashPassword(password);
@@ -40,32 +42,27 @@ public class UserService {
     }
 
     // 사용자 조회
-    public Optional<UserDto> getUser(Long id) {
-        return userRepository.findById(id)
-                .map(user -> new UserDto(user.getId(), user.getUsername(), user.getUserId(), user.getEmail(), null, user.getAge())); // 비밀번호는 제외
-    }
-
     public Optional<HomeUser> getUserById(String userId) {
         return userRepository.findByUserId(userId)
                 .map(user -> new HomeUser(user.getId(), user.getUsername(), user.getUserId(), user.getPassword(), user.getEmail(), user.getRole(), user.getAge())); // age 필드 추가
     }
 
     // 사용자 업데이트
-    public UserDto updateUser(Long id, String userId, String username, String email, String password, Integer age) {
-        Optional<HomeUser> userOptional = userRepository.findById(id);
+    public AllUserDto updateUser(String userId, String nickname, String email, Integer age, String gender, Double height, Double weight) {
+        Optional<AllUser> userOptional = allUserRepository.findByUserId(userId);
         if (userOptional.isPresent()) {
-            HomeUser user = userOptional.get();
+            AllUser user = userOptional.get();
             user.setUserId(userId);
-            user.setUsername(username);
+            user.setNickname(nickname);
             user.setEmail(email);
-            user.setAge(age); // 나이 업데이트
+            user.setAge(age);
+            user.setGender(gender);
+            user.setHeight(height);
+            user.setWeight(weight);
 
-            if (password != null) {
-                user.setPassword(hashPassword(password));
-            }
-
-            userRepository.save(user);
-            return new UserDto(user.getId(), user.getUsername(), user.getUserId(), user.getEmail(), null, user.getAge());
+            allUserRepository.save(user);
+            return new AllUserDto(user.getUserId(), user.getNickname(),user.getEmail(),user.getAge(),
+                                user.getGender(),user.getHeight(),user.getWeight());
         }
         return null;
     }
@@ -96,6 +93,7 @@ public class UserService {
         return passwordEncoder.encode(password); // BCryptPasswordEncoder로 비밀번호 인코딩
     }
 
+    // 일반로그인 비밀번호 확인
     public boolean checkPassword(HomeUser user, String rawPassword) {
         return passwordEncoder.matches(rawPassword, user.getPassword());
     }
@@ -115,11 +113,10 @@ public class UserService {
         return passwordEncoder.matches(rawPassword, user.getPassword());
     }
 
-
-
+    // 소셜로그인 사용자 닉네임, 이메일, 이름 변경
     @Transactional
     public SocialUserDTO updateSocialUser(String username, SocialUserDTO socialUserDTO) {
-        Optional<SocialUserEntity> socialUserOptional = Optional.ofNullable(socialUserRepository.findByUsername(username));
+        Optional<SocialUserEntity> socialUserOptional = Optional.ofNullable(socialUserRepository.findByUserId(username));
         if (socialUserOptional.isPresent()) {
             SocialUserEntity socialUser = socialUserOptional.get();
 
@@ -138,7 +135,7 @@ public class UserService {
             System.out.println("After update - Nickname: " + socialUser.getNickname() + ", Name: " + socialUser.getName() + ", Email: " + socialUser.getEmail());
 
             // 기존 SocialUserDTO 객체에 값을 설정
-            socialUserDTO.setUsername(socialUser.getUsername());
+            socialUserDTO.setUserId(socialUser.getUserId());
             socialUserDTO.setName(socialUser.getName());
             socialUserDTO.setEmail(socialUser.getEmail());
             socialUserDTO.setRole(socialUser.getRole());
@@ -149,9 +146,10 @@ public class UserService {
         return null;
     }
 
+    // 소셜로그인 사용자 삭제
     @Transactional
     public void deleteSocialUser(String username) {
-        SocialUserEntity socialUser = socialUserRepository.findByUsername(username);
+        SocialUserEntity socialUser = socialUserRepository.findByUserId(username);
         if (socialUser != null) {
             socialUserRepository.delete(socialUser);
             logger.info("Deleted social user with username: {}", username);
@@ -160,14 +158,17 @@ public class UserService {
         }
     }
 
+    // Id중복체크 있으면 true를 return
     public boolean userIdExists(String userId) {
         return userRepository.existsByUserId(userId);
     }
 
+    // email 중복체크 있으면 true를 return
     public boolean emailExists(String email) {
         return userRepository.existsByEmail(email);
     }
 
+    // email 인증 버튼을 누르면 인증코드를 전송
     @Transactional
     public boolean sendEmailCertification(String userId, String email) {
         if (userRepository.existsByUserId(userId)) {
@@ -189,6 +190,7 @@ public class UserService {
         return false; // 메일 전송 실패 시
     }
 
+    // 이메일 인증코드 검증
     @Transactional
     public boolean verifyCertificationCode(String userId, String email, String certificationNumber) {
         CertificationEntity certificationEntity = certificationRepository.findByUserId(userId);

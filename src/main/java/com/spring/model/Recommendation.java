@@ -17,9 +17,9 @@ public class Recommendation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
-    @ManyToOne // Recommendation 레코드가 하나의 HomeUser 레코드에 연결
+    @ManyToOne // Recommendation 레코드가 하나의 alluser 레코드에 연결
     @JoinColumn(name = "userid",referencedColumnName = "userId", nullable = false)  // userId null 값을 가질 수 없음
-    private HomeUser userId;
+    private AllUser userId;
 
 //    @ManyToOne
 //    @JoinColumn(name = "username",referencedColumnName = "username", nullable = false)

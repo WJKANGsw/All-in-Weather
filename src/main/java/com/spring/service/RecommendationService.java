@@ -3,6 +3,7 @@ package com.spring.service;
 
 import com.spring.model.*;
 import com.spring.model.social_entity.SocialUserEntity;
+import com.spring.repository.AllUserRepository;
 import com.spring.repository.UserRepository;
 import com.spring.repository.social.RecommendationRepository;
 import com.spring.repository.social.RecommendationSocialRepository;
@@ -22,13 +23,14 @@ import java.util.stream.Collectors;
 public class RecommendationService {
   private final RecommendationRepository recRepository;
   private final RecommendationSocialRepository recSocialRepository;
-  private final UserRepository userRepository;
+//  private final UserRepository userRepository;
+  private final AllUserRepository allUserRepository;
   private final SocialUserRepository socialUserRepository;
 
 
   @Transactional
   public void saveRecommendation(RecommendationDto recommendationDto) {
-    Optional<HomeUser> user = userRepository.findByUserId(recommendationDto.userId());
+    Optional<AllUser> user = allUserRepository.findByUserId(recommendationDto.userId());
     if (user.isPresent()) {
       Recommendation recommendation = new Recommendation();
       recommendation.setUserId(user.get());
@@ -50,7 +52,7 @@ public class RecommendationService {
     if (socialuser.isPresent()) {
       RecommendationSocial recommendation = new RecommendationSocial();
       recommendation.setUsername(socialuser.get());
-      recommendation.setRecommendation(recommendationDto.recommendation());
+      recommendation.setRecommendation(recommendation.getRecommendation());
       recommendation.setCreateDate(recommendationDto.createDate());
       recSocialRepository.save(recommendation);
     } else {

@@ -104,11 +104,12 @@ public class AllUserService {
   // 사용자가 선택한 스타일 목록 저장
   public void saveUserStyles(String userId, List<String> styles) {
     AllUser user = userRepository.findByUserId(userId)
-        .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
 
     for (String style : styles) {
       UserStyle userStyle = new UserStyle();
-      userStyle.setUser(user);
+      userStyle.setUserId(user);
       userStyle.setStyle(style);
       userStyleRepository.save(userStyle);
     }

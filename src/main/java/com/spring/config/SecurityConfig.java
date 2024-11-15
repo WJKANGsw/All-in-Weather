@@ -69,7 +69,7 @@ public class SecurityConfig {
                         .successHandler(customSuccessHandler)
                 )
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/api/users/addUserInfo/**","/api/users/register","/api/users/send-verification-code","/api/users/verify-code", "/api/users/check-userId", "/api/users/check-email","/api/users/login","/api/chat/**").permitAll() // 사용자 등록 및 로그인 허용
+                        .requestMatchers("/api/users/addUserInfo/**","/api/users/register","/api/users/send-verification-code","/api/users/verify-code", "/api/users/check-userId", "/api/users/check-email","/api/users/login","/api/chat/**", "/api/users/style").permitAll() // 사용자 등록 및 로그인 허용
                         .requestMatchers("/").permitAll()
                         .anyRequest().authenticated() // 나머지 요청은 인증 필요
                 )

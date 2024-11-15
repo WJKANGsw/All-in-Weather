@@ -337,8 +337,25 @@ public class UserController {
     }
 
     @PostMapping("/style")
-    public ResponseEntity<String> saveUserStyles(@RequestParam String userId, @RequestBody List<String> styles) {
-        allUserService.saveUserStyles(userId, styles);
-        return ResponseEntity.ok("User styles saved successfully!");
+    public ResponseEntity<String> saveUserStyles(@RequestBody Map<String, Object> requestData) {
+        try {
+            String userId = (String) requestData.get("userId");
+            List<?> rawStyles = (List<?>) requestData.get("preferences");
+
+
+            // 스트림을 사용하여 String 타입 요소만 필터링
+            List<String> styles = rawStyles.stream()
+                    .filter(item -> item instanceof String)
+                    .map(item -> (String) item)
+                    .toList();
+
+
+            allUserService.saveUserStyles(userId, styles);
+            return ResponseEntity.ok("User styles saved successfully!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid data format");
+        }
     }
+
 }

@@ -33,4 +33,5 @@ public class RecommendationSocial {
     @Column
     @DateTimeFormat(pattern = "yyyy-MM-dd/HH:mm")
     private LocalDateTime createDate;
+
 }

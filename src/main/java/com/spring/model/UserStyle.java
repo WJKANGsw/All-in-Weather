@@ -12,7 +12,7 @@ public class UserStyle {
   private Long id;
 
   @ManyToOne
-  @JoinColumn(name = "user_Id",referencedColumnName = "userId", nullable = false)
+  @JoinColumn(name = "userId",referencedColumnName = "userId", nullable = false)
   private AllUser userId;
 
   private String style;

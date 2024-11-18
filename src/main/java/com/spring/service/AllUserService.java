@@ -4,6 +4,7 @@ import com.spring.model.*;
 import com.spring.model.social_entity.SocialUserEntity;
 import com.spring.repository.AllUserRepository;
 import com.spring.repository.UserStyleRepository;
+import com.spring.repository.social.RecommendationRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -25,6 +26,7 @@ public class AllUserService {
   private final AllUserRepository userRepository;
   private final UserStyleRepository userStyleRepository;
   private final PasswordEncoder passwordEncoder; // BCryptPasswordEncoder 주입
+  private final RecommendationRepository recommendationRepository;
   private static final Logger logger = LoggerFactory.getLogger(AllUserService.class);
 
   // alluser 일반로그인 방식 회원가입
@@ -110,6 +112,7 @@ public class AllUserService {
   @Transactional
   public void deleteUser(String userId) {
     userStyleRepository.deleteByUserId_UserId(userId);
+    recommendationRepository.deleteByUserId_UserId(userId);
     Optional<AllUser> user = userRepository.findByUserId(userId);
     if (user.isPresent()) {
       userRepository.delete(user.get()); // Optional에서 get()을 사용하여 엔티티를 꺼냄

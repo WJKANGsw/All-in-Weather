@@ -1,7 +1,6 @@
 package com.spring.service;
 
 import com.spring.model.*;
-import com.spring.model.social_entity.SocialUserEntity;
 import com.spring.repository.AllUserRepository;
 import com.spring.repository.UserStyleRepository;
 import com.spring.repository.social.RecommendationRepository;
@@ -15,7 +14,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 

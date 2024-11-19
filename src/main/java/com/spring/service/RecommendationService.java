@@ -37,6 +37,7 @@ public class RecommendationService {
       recommendation.setTemp_high(recommendationDto.temp_high());
       recommendation.setTemp_low(recommendationDto.temp_low());
       recommendation.setCreateDate(recommendationDto.createDate());
+      recommendation.setImageUrl(recommendationDto.imageUrl());
       recRepository.save(recommendation);
     } else {
       throw new IllegalArgumentException("Recommendation cannot be null");
@@ -55,7 +56,8 @@ public class RecommendationService {
             recommendation.getRecActivity(),
             recommendation.getTemp_high(),
             recommendation.getTemp_low(),
-            recommendation.getCreateDate()
+            recommendation.getCreateDate(),
+            recommendation.getImageUrl()
         ))
         .collect(Collectors.toList());
   }

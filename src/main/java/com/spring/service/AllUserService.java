@@ -1,9 +1,13 @@
 package com.spring.service;
 
+import com.spring.common.CertificationNumber;
 import com.spring.model.*;
+import com.spring.provider.EmailProvider;
 import com.spring.model.social_entity.SocialUserEntity;
 import com.spring.repository.AllUserRepository;
+import com.spring.repository.CertificationRepository;
 import com.spring.repository.UserStyleRepository;
+import com.spring.repository.social.RecommendationRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -25,7 +29,10 @@ public class AllUserService {
   private final AllUserRepository userRepository;
   private final UserStyleRepository userStyleRepository;
   private final PasswordEncoder passwordEncoder; // BCryptPasswordEncoder 주입
+  private final RecommendationRepository recommendationRepository;
   private static final Logger logger = LoggerFactory.getLogger(AllUserService.class);
+  private final CertificationRepository certificationRepository; // 인증 레포지토리 주입
+  private final EmailProvider emailProvider; // 이메일 전송 컴포넌트 주입
 
   // alluser 일반로그인 방식 회원가입
   @Transactional
@@ -110,6 +117,7 @@ public class AllUserService {
   @Transactional
   public void deleteUser(String userId) {
     userStyleRepository.deleteByUserId_UserId(userId);
+    recommendationRepository.deleteByUserId_UserId(userId);
     Optional<AllUser> user = userRepository.findByUserId(userId);
     if (user.isPresent()) {
       userRepository.delete(user.get()); // Optional에서 get()을 사용하여 엔티티를 꺼냄
@@ -167,4 +175,50 @@ public class AllUserService {
       return null; // 스타일이 없는 경우
     }
   }
+
+  // Id중복체크 있으면 true를 return
+  public boolean userIdExists(String userId) {
+    return userRepository.existsByUserId(userId);
+  }
+
+  // email 중복체크 있으면 true를 return
+  public boolean emailExists(String email) {
+    return userRepository.existsByEmail(email);
+  }
+
+  // email 인증 버튼을 누르면 인증코드를 전송
+  @Transactional
+  public boolean sendEmailCertification(String userId, String email) {
+    if (userRepository.existsByUserId(userId)) {
+      logger.warn("User ID already exists: {}", userId);
+      return false; // 이미 존재하는 ID인 경우 실패 처리
+    }
+
+    // 인증 코드 생성 및 메일 전송
+    String certificationNumber = CertificationNumber.getCertificationNumber();
+    boolean isSent = emailProvider.sendCertificationMail(email, certificationNumber);
+
+    if (isSent) {
+      // 인증 정보 저장
+      CertificationEntity entity = new CertificationEntity(userId, email, certificationNumber);
+      certificationRepository.save(entity);
+      return true;
+    }
+    return false; // 메일 전송 실패 시
+  }
+
+  // 이메일 인증코드 검증
+  @Transactional
+  public boolean verifyCertificationCode(String userId, String email, String certificationNumber) {
+    CertificationEntity certificationEntity = certificationRepository.findByUserId(userId);
+
+    if (certificationEntity != null && certificationEntity.getEmail().equals(email) &&
+        certificationEntity.getCertificationNumber().equals(certificationNumber)) {
+      certificationRepository.delete(certificationEntity); // 인증 성공 시 데이터 삭제
+      return true;
+    }
+    return false; // 인증 실패 시
+  }
+
+
 }

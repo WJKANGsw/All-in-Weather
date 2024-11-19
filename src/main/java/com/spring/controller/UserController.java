@@ -41,19 +41,19 @@ public class UserController {
 
     @PostMapping("/check-userId")
     public ResponseEntity<Boolean> checkUserId(@RequestBody IdCheckRequestDto requestDto) {
-        boolean exists = userService.userIdExists(requestDto.getUserId());
+        boolean exists = allUserService.userIdExists(requestDto.getUserId());
         return new ResponseEntity<>(exists, HttpStatus.OK);
     }
 
     @PostMapping("/check-email")
     public ResponseEntity<Boolean> checkEmail(@RequestBody EmailCertificationRequestDto requestDto) {
-        boolean exists = userService.emailExists(requestDto.getEmail());
+        boolean exists = allUserService.emailExists(requestDto.getEmail());
         return new ResponseEntity<>(exists, HttpStatus.OK);
     }
 
     @PostMapping("/send-verification-code")
     public ResponseEntity<?> sendVerificationCode(@RequestBody EmailCertificationRequestDto requestDto) {
-        boolean isSent = userService.sendEmailCertification(requestDto.getId(), requestDto.getEmail());
+        boolean isSent = allUserService.sendEmailCertification(requestDto.getId(), requestDto.getEmail());
 
         if (!isSent) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("ID가 이미 존재하거나 메일 전송 실패");
@@ -64,7 +64,7 @@ public class UserController {
 
     @PostMapping("/verify-code")
     public ResponseEntity<?> verifyCode(@RequestBody CheckCertificationRequestDto requestDto) {
-        boolean isVerified = userService.verifyCertificationCode(
+        boolean isVerified = allUserService.verifyCertificationCode(
             requestDto.getId(), requestDto.getEmail(), requestDto.getCertificationNumber()
         );
 

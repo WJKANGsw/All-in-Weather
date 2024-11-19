@@ -40,4 +40,7 @@ public class Recommendation {
     @Column
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm")
     private LocalDateTime createDate;
+
+    @Column(nullable = true, length = 1024)
+    private String imageUrl; // 이미지 URL을 저장하는 필드
 }

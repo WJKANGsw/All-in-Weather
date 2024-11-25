@@ -1,6 +1,5 @@
 package com.spring.model;
 
-import com.spring.model.social_entity.SocialUserEntity;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;

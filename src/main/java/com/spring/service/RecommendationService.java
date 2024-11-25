@@ -6,8 +6,6 @@ import com.spring.model.Recommendation;
 import com.spring.model.RecommendationDto;
 import com.spring.repository.AllUserRepository;
 import com.spring.repository.social.RecommendationRepository;
-import com.spring.repository.social.RecommendationSocialRepository;
-import com.spring.repository.social.SocialUserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,9 +19,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class RecommendationService {
   private final RecommendationRepository recRepository;
-  private final RecommendationSocialRepository recSocialRepository;
   private final AllUserRepository userRepository;
-  private final SocialUserRepository socialUserRepository;
 
 
   @Transactional

@@ -28,7 +28,7 @@ public class JwtTokenProvider {
     private String secretKey;
     private static final Logger logger = LoggerFactory.getLogger(JwtTokenProvider.class); // Logger 추가
 
-    private static final long TOKEN_VALID_MILLISECOND = 1000L * 60 * 60 * 60; // 60시간
+    private static final long TOKEN_VALID_MILLISECOND = 1000L * 60 * 60 ; // 1시간
     private static final long REFRESH_TOKEN_VALID_MILLISECOND = 1000L * 60 * 60 * 24 * 7; // 1주일
 
     @PostConstruct

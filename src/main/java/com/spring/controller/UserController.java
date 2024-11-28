@@ -7,6 +7,7 @@ import com.spring.model.dto.request.auth.IdCheckRequestDto;
 import com.spring.model.social_dto.CustomOAuth2User;
 import com.spring.repository.AllUserRepository;
 import com.spring.repository.RefreshTokenRepository;
+import com.spring.repository.UserScheduleRepository;
 import com.spring.security.JwtTokenProvider;
 import com.spring.security.RefreshToken;
 import com.spring.service.AllUserService;
@@ -33,6 +34,7 @@ public class UserController {
     private final JwtTokenProvider jwtTokenProvider;
     private final AllUserRepository allUserRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final UserScheduleRepository userScheduleRepository;
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class); // Logger 추가
 
@@ -270,6 +272,8 @@ public class UserController {
     @DeleteMapping("delete/{userId}")
     public ResponseEntity<Void> deleteAllUser(@PathVariable String userId) {
         try {
+            userScheduleRepository.deleteByUserId(userId);
+            logger.info("User schedules deleted for user: {}", userId);
             refreshTokenRepository.deleteByUserId(userId);
             logger.info("Refresh token deleted for user: {}", userId); // 로그 추가
             allUserService.deleteUser(userId);

@@ -27,18 +27,18 @@ public class NotificationController {
   private final WeatherService weatherService;
   private final NotificationService notificationService;
 
-  // 일정 시작 30분 전 알림을 조회하는 엔드포인트
+  // 일정 시작 6시간 전 알림을 조회하는 엔드포인트
   @GetMapping("/upcoming")
   public ResponseEntity<List<NotificationResponse>> getUpcomingNotifications(@RequestParam String userId) {
     LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
-    LocalDateTime checkTime = now.plusMinutes(180);  // 현재 시간부터 3시간 후까지의 알림 확인
+    LocalDateTime checkTime = now.plusMinutes(360);  // 현재 시간부터 6시간 후까지의 알림 확인
 
     List<UserSchedule> schedules = userScheduleService.getSchedulesBetween(userId, now, checkTime);
     List<NotificationResponse> notifications = new ArrayList<>();
 
     for (UserSchedule schedule : schedules) {
       WeatherData weatherData = weatherService.getWeatherDataForTimestamp(schedule.getUserId().getUserId(), schedule.getTimestamp());
-      if (weatherData != null && shouldNotify(schedule, weatherData)) {
+      if (weatherData != null) {
         String notificationMessage = notificationService.generateNotificationMessage(schedule, weatherData);
         notifications.add(new NotificationResponse(
             "알림",
@@ -49,20 +49,5 @@ public class NotificationController {
     }
 
     return ResponseEntity.ok(notifications);
-  }
-
-  // 알림 조건 체크
-  private boolean shouldNotify(UserSchedule schedule, WeatherData weatherData) {
-    // 날씨 조건에 따른 알림 여부 확인
-    if (weatherData.getPrecipitation() > 50) {
-      return true; // 비가 50% 이상 예보된 경우
-    }
-    if (weatherData.getTemperature() < 0 || weatherData.getTemperature() > 30) {
-      return true; // 기온이 너무 낮거나 높을 경우
-    }
-    if ("눈".equals(weatherData.getWeatherCondition())) {
-      return true; // 눈이 오는 경우
-    }
-    return false;
   }
 }

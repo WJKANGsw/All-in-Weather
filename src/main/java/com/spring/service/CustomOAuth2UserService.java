@@ -95,7 +95,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             AllUser existingUser = existData.get(); // Optional에서 실제 객체를 가져옵니다.
             existingUser.setEmail(oAuth2Response.getEmail());
             existingUser.setName(oAuth2Response.getName());
-            existingUser.setNickname(generateRandomNickname()); // 랜덤 닉네임 생성 (필요 시)
             userRepository.save(existingUser);
 
             // 프로필이 완료되었는지 확인

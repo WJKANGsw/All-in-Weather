@@ -5,11 +5,14 @@ import com.spring.model.dto.request.auth.CheckCertificationRequestDto;
 import com.spring.model.dto.request.auth.EmailCertificationRequestDto;
 import com.spring.model.dto.request.auth.IdCheckRequestDto;
 import com.spring.model.social_dto.CustomOAuth2User;
-import com.spring.model.social_dto.SocialUserDTO;
 import com.spring.repository.AllUserRepository;
+import com.spring.repository.RefreshTokenRepository;
+import com.spring.repository.UserScheduleRepository;
 import com.spring.security.JwtTokenProvider;
+import com.spring.security.RefreshToken;
 import com.spring.service.AllUserService;
 import com.spring.service.UserService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,10 +22,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.time.LocalDateTime;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/users")
@@ -31,14 +32,13 @@ public class UserController {
     private final UserService userService;
     private final AllUserService allUserService;
     private final JwtTokenProvider jwtTokenProvider;
-
-//    private final SocialUserRepository socialUserRepository;
-
     private final AllUserRepository allUserRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final UserScheduleRepository userScheduleRepository;
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class); // Logger 추가
 
-
+    // 아이디 중복체크 .. 중복이면 true를 return
     @PostMapping("/check-userId")
     public ResponseEntity<Boolean> checkUserId(@RequestBody IdCheckRequestDto requestDto) {
         boolean exists = allUserService.userIdExists(requestDto.getUserId());
@@ -75,19 +75,6 @@ public class UserController {
         return ResponseEntity.ok("인증이 완료되었습니다.");
     }
 
-
-    // 사용자 등록
-//    @PostMapping("/register")
-//    public ResponseEntity<UserDto> registerUser(@RequestBody UserDto userDto) {
-//        logger.info("Registering user: {}", userDto.username()); // 등록 시작 로그
-//
-//        // 사용자 등록
-//        UserDto createdUser = userService.createUser(userDto.username(), userDto.userId(), userDto.password(), userDto.email(), userDto.age());
-//
-//        logger.info("User registered successfully: {}", createdUser.username()); // 성공적인 등록 로그
-//        return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
-//    }
-
     @PostMapping("/register")
     public ResponseEntity<Map<String, Object>> registerUser(@RequestBody AllUserDto userDto) {
         if (userDto == null) {
@@ -103,30 +90,82 @@ public class UserController {
 
         logger.info("User registered successfully: {}", createdUser.getUserId());
 
-        // 안전하게 token 생성 (nickname 제외, userId만 포함)
-        String token = null;
-        if (createdUser.getUserId() != null) {
-            token = jwtTokenProvider.createToken(
-                createdUser.getUserId(),  // userId만 넘기기
-                List.of(createdUser.getRole().name())
-            );
-            logger.info("JWT Token created for user: {}", createdUser.getUserId());
-        } else {
-            logger.error("User information missing for JWT creation");
-        }
+        // Access Token 생성
+        String accessToken = jwtTokenProvider.createToken(
+            createdUser.getUserId(),
+            List.of(createdUser.getRole().name())
+        );
+
+        // Refresh Token 생성
+        String refreshToken = jwtTokenProvider.createRefreshToken(createdUser.getUserId());
+
+        // Access Token 만료 시간 계산
+        long tokenExpiry = new Date().getTime() + jwtTokenProvider.getTokenValidMillisecond();
+
+        // Refresh Token DB에 저장
+        RefreshToken refreshTokenEntity = new RefreshToken();
+        refreshTokenEntity.setUserId(createdUser.getUserId());
+        refreshTokenEntity.setToken(refreshToken);
+        refreshTokenEntity.setExpiryDate(LocalDateTime.now().plusWeeks(1));
+        refreshTokenRepository.save(refreshTokenEntity);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
             "user", Map.of("userId", createdUser.getUserId()),
-            "token", token
+            "token", accessToken,
+            "refreshToken", refreshToken,
+            "tokenExpiry", tokenExpiry // 만료 시간 추가
         ));
     }
 
-    // 사용자 조회
+    @Transactional
+    @PostMapping("/login")
+    public ResponseEntity<Map<String, Object>> login(@RequestBody AllUserDto userDto) {
+        logger.info("Login attempt for userId: {}", userDto.getUserId());
+
+        // 사용자 검색
+        AllUser user = allUserService.getUserByUserId(userDto.getUserId())
+            .orElseThrow(() -> {
+                logger.warn("User not found: {}", userDto.getUserId());
+                return new UsernameNotFoundException("User not found");
+            });
+
+        // 비밀번호 확인
+        if (user.getProvider() == LoginType.general && !allUserService.checkPassword(user, userDto.getPassword())) {
+            logger.warn("Invalid password attempt for userId: {}", userDto.getUserId());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid password"));
+        }
+
+        // Access Token 생성 및 만료 시간 계산
+        long accessTokenValidMillisecond = jwtTokenProvider.getTokenValidMillisecond();
+        Date now = new Date();
+        String accessToken = jwtTokenProvider.createToken(user.getUserId(), List.of(user.getRole().name()));
+        long tokenExpiry = now.getTime() + accessTokenValidMillisecond;
+
+        // Refresh Token 생성 및 저장
+        String refreshToken = jwtTokenProvider.createRefreshToken(user.getUserId());
+        refreshTokenRepository.deleteByUserId(user.getUserId());
+
+        RefreshToken refreshTokenEntity = new RefreshToken();
+        refreshTokenEntity.setUserId(user.getUserId());
+        refreshTokenEntity.setToken(refreshToken);
+        refreshTokenEntity.setExpiryDate(LocalDateTime.now().plusWeeks(1));
+        refreshTokenRepository.save(refreshTokenEntity);
+
+        // 사용자 정보와 토큰을 포함한 응답
+        return ResponseEntity.ok(Map.of(
+            "user", Map.of("username", user.getNickname()),
+            "token", accessToken,
+            "refreshToken", refreshToken,
+            "tokenExpiry", tokenExpiry // 만료 시간 추가
+        ));
+    }
+
+    // 통합 사용자 조회
     @GetMapping("/show/{userId}")
     public ResponseEntity<AllUser> getUser(@PathVariable String userId) {
         return allUserService.getUserByUserId(userId)
             .map(userDto -> {
-                logger.info("User retrieved: {}", userDto.getUserId()); // 로그 추가
+                logger.info("User retrieved(사용자 조회): {}", userDto.getUserId()); // 로그 추가
                 return ResponseEntity.ok(userDto);
             })
             .orElseGet(() -> {
@@ -139,7 +178,7 @@ public class UserController {
     @PutMapping("/update/{userId}")
     public ResponseEntity<AllUserDto> updateUser(@RequestBody AllUserDto userDto) {
         AllUserDto updatedUser = userService.updateUser(userDto.getUserId(), userDto.getNickname(),userDto.getEmail(),userDto.getAge(),
-                                                        userDto.getGender(),userDto.getHeight(),userDto.getWeight());
+            userDto.getGender(),userDto.getHeight(),userDto.getWeight());
         return ResponseEntity.ok(updatedUser);
     }
 
@@ -169,71 +208,7 @@ public class UserController {
         }
     }
 
-//    @PostMapping("/login")
-//    public ResponseEntity<Map<String, Object>> login(@RequestBody UserDto userDto, HttpServletResponse response) {
-//        logger.info("Login attempt for userId: {}", userDto.userId()); // 로그인 시도 로그
-//
-//        // userId를 통해 사용자 검색
-//        HomeUser user = userService.getUserById(userDto.userId())
-//            .orElseThrow(() -> {
-//                logger.warn("User not found: {}", userDto.userId()); // 사용자 미발견 로그
-//                return new UsernameNotFoundException("User not found");
-//            });
-//
-//        // 비밀번호 확인
-//        if (!userService.checkPassword(user, userDto.password())) {
-//            logger.warn("Invalid password attempt for userId: {}", userDto.userId()); // 잘못된 비밀번호 로그
-//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid password"));
-//        }
-//
-//        // JWT 토큰 생성
-//        String token = jwtTokenProvider.createToken(user.getUsername(), user.getUserId(), List.of(user.getRole().getValue()));
-//
-//        logger.info("User logged in successfully: {}", user.getUsername()); // 성공적인 로그인 로그
-//
-////        Cookie cookie = new Cookie("AccessToken", token);
-////        cookie.setHttpOnly(true); // JavaScript로 접근 불가능하여 XSS 공격 방지
-////        cookie.setSecure(false); // HTTPS에서만 전송 (로컬 개발 시 false로 설정 가능)
-////        cookie.setPath("/");
-////        cookie.setMaxAge(60 * 60); // 1시간 (토큰 만료 시간과 동일하게 설정)
-////        response.addCookie(cookie);
-//
-//        // 사용자 정보와 토큰을 포함한 응답
-//        return ResponseEntity.ok(Map.of("user", Map.of("username", user.getUsername()), "token", token));
-//    }
-
-    @PostMapping("/login")
-    public ResponseEntity<Map<String, Object>> login(@RequestBody AllUserDto userDto) {
-        logger.info("Login attempt for userId: {}", userDto.getUserId()); // 수정된 DTO 접근 방식
-
-        // userId를 통해 사용자 검색
-        AllUser user = allUserService.getUserByUserId(userDto.getUserId())
-            .orElseThrow(() -> {
-                logger.warn("User not found: {}", userDto.getUserId()); // 사용자 미발견 로그
-                return new UsernameNotFoundException("User not found");
-            });
-
-        // 비밀번호 확인 (소셜 로그인인 경우 비밀번호는 없으므로 확인할 필요 없음)
-        if (user.getProvider() == LoginType.general && !allUserService.checkPassword(user, userDto.getPassword())) {
-            logger.warn("Invalid password attempt for userId: {}", userDto.getUserId()); // 잘못된 비밀번호 로그
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid password"));
-        }
-
-        // JWT 토큰 생성
-        String token = jwtTokenProvider.createToken(
-            user.getUserId(),
-           // user.getNickname(),
-            List.of(user.getRole().name())
-        );
-        logger.info("User logged in successfully: {}", user.getUserId()); // 성공적인 로그인 로그
-
-        // 사용자 정보와 토큰을 포함한 응답
-        return ResponseEntity.ok(Map.of(
-            "user", Map.of("username", user.getNickname()),
-            "token", token
-        ));
-    }
-
+    // 회원가입 시 나이,성별,키,몸무게를 받아와서 db에 저장하기
     @PutMapping("/addUserInfo/{userId}")
     public ResponseEntity<AllUserDto> updateUserInfo(@PathVariable String userId, @RequestBody AllUserDto userDto) {
         try {
@@ -291,37 +266,15 @@ public class UserController {
         return ResponseEntity.ok(userInfo);
     }
 
-//    @PutMapping("/update/social/{userId}")
-//    public ResponseEntity<?> updateSocialUser(
-//        @PathVariable String userId,
-//        @RequestBody SocialUserDTO socialUserDTO) {
-//        try {
-//            // 사용자 정보를 수정하는 서비스 호출
-//            SocialUserDTO updatedUser = userService.updateSocialUser(userId, socialUserDTO);
-//            return ResponseEntity.ok(updatedUser); // 성공적으로 수정된 사용자 정보 반환
-//        } catch (Exception e) {
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-//                .body("회원 정보 수정 중 오류가 발생했습니다."); // 오류 메시지 반환
-//        }
-//    }
-//
-//    // 소셜 사용자 탈퇴
-//    @DeleteMapping("delete/social_user/{username}")
-//    public ResponseEntity<Void> deleteSocialUser(@PathVariable String username) {
-//        try {
-//            userService.deleteSocialUser(username);
-//            logger.info("Social user deleted: {}", username); // 로그 추가
-//            return ResponseEntity.noContent().build(); // 성공시 204 No Content 반환
-//        } catch (Exception e) {
-//            logger.error("Error deleting social user: {}", username, e);
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // 오류시 500 에러 반환
-//        }
-//    }
-
     // allUser 사용자 삭제
+    @Transactional
     @DeleteMapping("delete/{userId}")
     public ResponseEntity<Void> deleteAllUser(@PathVariable String userId) {
         try {
+            userScheduleRepository.deleteByUserId(userId);
+            logger.info("User schedules deleted for user: {}", userId);
+            refreshTokenRepository.deleteByUserId(userId);
+            logger.info("Refresh token deleted for user: {}", userId); // 로그 추가
             allUserService.deleteUser(userId);
             logger.info("alluser deleted: {}", userId); // 로그 추가
             return ResponseEntity.noContent().build(); // 성공시 204 No Content 반환
@@ -335,8 +288,12 @@ public class UserController {
     public ResponseEntity<String> saveUserStyles(@RequestBody Map<String, Object> requestData) {
         try {
             String userId = (String) requestData.get("userId");
+            String socialUserId = (String) requestData.get("social_userId");
             List<?> rawStyles = (List<?>) requestData.get("preferences");
 
+            if (userId == null && socialUserId == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Missing user ID or social user ID");
+            }
 
             // 스트림을 사용하여 String 타입 요소만 필터링
             List<String> styles = rawStyles.stream()
@@ -353,6 +310,7 @@ public class UserController {
         }
     }
 
+    // chatGpt Api를 통해 요청 content에 들어갈 사용자 스타일을 가져오기 (하나 userId에 대해서 여러 style을 가져온다)
     @GetMapping("/style/{userId}")
     public ResponseEntity<List<UserStyle>> getUserStyle(@PathVariable("userId") String userId) {
         List<UserStyle> userStyles = allUserService.getUserStyle(userId);
@@ -361,6 +319,45 @@ public class UserController {
         } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null); // 스타일이 없으면 404 반환
         }
-
     }
+
+    // 일반로그인 사용자의 accessToken이 만료시에 서버에 accessToken 재발급 요청
+    @PostMapping("/token/refresh")
+    public ResponseEntity<Map<String, Object>> refreshAccessToken(@RequestBody Map<String, String> request) {
+        String refreshToken = request.get("refreshToken");
+
+        try {
+            // Refresh Token 유효성 검사
+            String userId = jwtTokenProvider.getUserId(refreshToken);
+            logger.debug("Extracted userId from refresh token: {}", userId);
+
+            RefreshToken storedToken = refreshTokenRepository.findByUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Refresh token does not exist for user"));
+
+            if (!storedToken.getToken().equals(refreshToken)) {
+                logger.warn("Stored token does not match provided token for user: {}", userId);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid refresh token"));
+            }
+
+            if (!jwtTokenProvider.validateToken(refreshToken)) {
+                logger.warn("Provided refresh token is invalid or expired for user: {}", userId);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid refresh token"));
+            }
+
+            // 새로운 Access Token 발급
+            List<String> roles = List.of("ROLE_USER"); // 권한 조회 로직 필요 시 추가
+            String newAccessToken = jwtTokenProvider.createToken(userId, roles);
+
+            long newTokenExpiry = System.currentTimeMillis() + jwtTokenProvider.getTokenValidMillisecond();
+
+            return ResponseEntity.ok(Map.of(
+                "token", newAccessToken,
+                "tokenExpiry", newTokenExpiry // 추가된 만료 시간
+            ));
+        } catch (Exception e) {
+            logger.error("Error refreshing token", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Token refresh failed"));
+        }
+    }
+
 }

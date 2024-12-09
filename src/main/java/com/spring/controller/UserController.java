@@ -121,25 +121,6 @@ public class UserController {
         ));
     }
 
-
-
-
-
-
-//    // 사용자 조회
-//    @GetMapping("/show/{userId}")
-//    public ResponseEntity<HomeUser> getUser(@PathVariable String userId) {
-//        return userService.getUserById(userId)
-//                .map(userDto -> {
-//                    logger.info("User retrieved: {}", userDto.getUserId()); // 로그 추가
-//                    return ResponseEntity.ok(userDto);
-//                })
-//                .orElseGet(() -> {
-//                    logger.warn("User not found: {}", userId); // 로그 추가
-//                    return ResponseEntity.notFound().build();
-//                });
-//    }
-
     // 사용자 조회
     @GetMapping("/show/{userId}")
     public ResponseEntity<AllUser> getUser(@PathVariable String userId) {
@@ -310,32 +291,32 @@ public class UserController {
         return ResponseEntity.ok(userInfo);
     }
 
-    @PutMapping("/update/social/{userId}")
-    public ResponseEntity<?> updateSocialUser(
-        @PathVariable String userId,
-        @RequestBody SocialUserDTO socialUserDTO) {
-        try {
-            // 사용자 정보를 수정하는 서비스 호출
-            SocialUserDTO updatedUser = userService.updateSocialUser(userId, socialUserDTO);
-            return ResponseEntity.ok(updatedUser); // 성공적으로 수정된 사용자 정보 반환
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("회원 정보 수정 중 오류가 발생했습니다."); // 오류 메시지 반환
-        }
-    }
-
-    // 소셜 사용자 탈퇴
-    @DeleteMapping("delete/social_user/{username}")
-    public ResponseEntity<Void> deleteSocialUser(@PathVariable String username) {
-        try {
-            userService.deleteSocialUser(username);
-            logger.info("Social user deleted: {}", username); // 로그 추가
-            return ResponseEntity.noContent().build(); // 성공시 204 No Content 반환
-        } catch (Exception e) {
-            logger.error("Error deleting social user: {}", username, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // 오류시 500 에러 반환
-        }
-    }
+//    @PutMapping("/update/social/{userId}")
+//    public ResponseEntity<?> updateSocialUser(
+//        @PathVariable String userId,
+//        @RequestBody SocialUserDTO socialUserDTO) {
+//        try {
+//            // 사용자 정보를 수정하는 서비스 호출
+//            SocialUserDTO updatedUser = userService.updateSocialUser(userId, socialUserDTO);
+//            return ResponseEntity.ok(updatedUser); // 성공적으로 수정된 사용자 정보 반환
+//        } catch (Exception e) {
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                .body("회원 정보 수정 중 오류가 발생했습니다."); // 오류 메시지 반환
+//        }
+//    }
+//
+//    // 소셜 사용자 탈퇴
+//    @DeleteMapping("delete/social_user/{username}")
+//    public ResponseEntity<Void> deleteSocialUser(@PathVariable String username) {
+//        try {
+//            userService.deleteSocialUser(username);
+//            logger.info("Social user deleted: {}", username); // 로그 추가
+//            return ResponseEntity.noContent().build(); // 성공시 204 No Content 반환
+//        } catch (Exception e) {
+//            logger.error("Error deleting social user: {}", username, e);
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // 오류시 500 에러 반환
+//        }
+//    }
 
     // allUser 사용자 삭제
     @DeleteMapping("delete/{userId}")

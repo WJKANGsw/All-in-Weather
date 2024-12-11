@@ -57,9 +57,11 @@ public class CustomSuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         if (profileComplete) {
             // 프로필이 완료된 경우 메인 페이지로 리다이렉트
             response.sendRedirect("http://localhost:5173/dashboard");
+            //response.sendRedirect("https://allinweather.site/dashboard");
         } else {
             // 추가 정보가 필요한 경우 사용자 정보 입력 페이지로 리다이렉트
             response.sendRedirect("http://localhost:5173/addUserInfo");
+            //response.sendRedirect("https://allinweather.site/addUserInfo");
         }
     }
 

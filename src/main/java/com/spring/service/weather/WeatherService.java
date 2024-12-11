@@ -3,6 +3,7 @@ package com.spring.service.weather;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.spring.model.WeatherData;
 import com.spring.repository.WeatherDataRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,10 @@ public class WeatherService {
   public WeatherService(RestTemplate restTemplate, WeatherDataRepository weatherDataRepository) {
     this.restTemplate = restTemplate;
     this.weatherDataRepository = weatherDataRepository;
+  }
+
+  public WeatherData getWeatherDataByUserIdAndTimestamp(String userId, LocalDateTime timestamp) {
+    return weatherDataRepository.findTopByUserIdAndTimestampOrderByIdDesc(userId, timestamp);
   }
 
   // 위치 정보와 정확한 timestamp를 기반으로 날씨 데이터를 저장하는 메서드
@@ -130,5 +135,25 @@ public class WeatherService {
     }
 
     return closestData;
+  }
+
+  @Transactional
+  public void updateWeatherData(String userId, double latitude, double longitude, LocalDateTime timestamp) {
+    // 기존 날씨 데이터 삭제
+    weatherDataRepository.deleteByUserIdAndTimestamp(userId, timestamp);
+
+    // 새 날씨 데이터 저장
+    saveWeatherData(userId, latitude, longitude, timestamp);
+  }
+
+  @Transactional
+  public void deleteWeatherData(String userId, Double latitude, Double longitude, LocalDateTime timestamp) {
+    if (latitude != null && longitude != null && timestamp != null) {
+      System.out.println("Deleting weather data for userId: " + userId + ", latitude: " + latitude + ", longitude: " + longitude + ", timestamp: " + timestamp);
+      weatherDataRepository.deleteByUserIdAndLatitudeAndLongitudeAndTimestamp(userId, latitude, longitude, timestamp);
+    } else if (timestamp != null) {
+      System.out.println("Deleting weather data for userId: " + userId + " at timestamp: " + timestamp);
+      weatherDataRepository.deleteByUserIdAndTimestamp(userId, timestamp);
+    }
   }
 }

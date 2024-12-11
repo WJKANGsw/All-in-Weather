@@ -1,13 +1,18 @@
 package com.spring.model.schedule;
 
+import lombok.Getter;
+import lombok.Setter;
+
+import java.time.LocalDateTime;
+
+@Getter
+@Setter
 public class ScheduleUpdateRequest {
   private String activity;
-
-  public String getActivity() {
-    return activity;
-  }
-
-  public void setActivity(String activity) {
-    this.activity = activity;
-  }
+  private String timeSlot;
+  private String placeName;
+  private String address;
+  private Double latitude;
+  private Double longitude;
+  private LocalDateTime timestamp;
 }

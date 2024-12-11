@@ -4,6 +4,7 @@ import com.spring.model.*;
 import com.spring.model.dto.request.auth.CheckCertificationRequestDto;
 import com.spring.model.dto.request.auth.EmailCertificationRequestDto;
 import com.spring.model.dto.request.auth.IdCheckRequestDto;
+import com.spring.model.schedule.UpdateFcmTokenRequest;
 import com.spring.model.social_dto.CustomOAuth2User;
 import com.spring.repository.AllUserRepository;
 import com.spring.repository.RefreshTokenRepository;
@@ -26,6 +27,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 @RestController
+
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class UserController {
@@ -41,6 +43,7 @@ public class UserController {
     // 아이디 중복체크 .. 중복이면 true를 return
     @PostMapping("/check-userId")
     public ResponseEntity<Boolean> checkUserId(@RequestBody IdCheckRequestDto requestDto) {
+        System.out.println(requestDto.getUserId());
         boolean exists = allUserService.userIdExists(requestDto.getUserId());
         return new ResponseEntity<>(exists, HttpStatus.OK);
     }
@@ -362,6 +365,25 @@ public class UserController {
         } catch (Exception e) {
             logger.error("Error refreshing token", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Token refresh failed"));
+        }
+    }
+
+    @PutMapping("/update/fcm_token")
+    public ResponseEntity<String> updateFcmToken(@RequestBody UpdateFcmTokenRequest request) {
+        Optional<AllUser> userOptional = allUserRepository.findByUserId(request.getUserId());
+
+        if (userOptional.isPresent()) {
+            AllUser user = userOptional.get();
+
+            if (request.getFcmToken().equals(user.getFcmToken())) {
+                return ResponseEntity.ok("기존 토큰과 동일하여 업데이트할 필요가 없습니다.");
+            } else {
+                user.setFcmToken(request.getFcmToken());
+                allUserRepository.save(user);
+                return ResponseEntity.ok("FCM 토큰이 업데이트되었습니다.");
+            }
+        } else {
+            return ResponseEntity.badRequest().body("사용자를 찾을 수 없습니다.");
         }
     }
 

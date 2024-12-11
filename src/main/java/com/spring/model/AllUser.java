@@ -45,4 +45,7 @@ public class AllUser {
   private Double weight;
 
   private LocalDate registrationDate; // 회원가입 날짜
+
+  @Column(nullable = true)
+  private String fcmToken; // FCM 토큰 추가
 }

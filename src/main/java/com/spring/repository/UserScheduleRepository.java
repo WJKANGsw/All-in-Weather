@@ -22,4 +22,6 @@ public interface UserScheduleRepository extends JpaRepository<UserSchedule, Long
   @Modifying
   @Query("DELETE FROM UserSchedule us WHERE us.userId.userId = :userId")
   void deleteByUserId(@Param("userId") String userId);
+
+  boolean existsByUserIdAndDateAndTimeSlot(AllUser user, LocalDate date, String timeSlot);
 }

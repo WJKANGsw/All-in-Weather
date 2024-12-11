@@ -11,6 +11,7 @@ import java.net.URL;
 import java.util.Map;
 
 @RestController
+@RequestMapping("/api")
 public class S3Controller {
 
   private final S3Service s3Service;

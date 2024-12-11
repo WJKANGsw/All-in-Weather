@@ -39,3 +39,4 @@ out/
 # Ignore application properties
 /src/main/resources/application.properties
 /src/main/resources/all-in-weather-2412.json
+Dockerfile

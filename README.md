@@ -8,6 +8,6 @@ BE
 4. FE 에서 ChatGPT API로 얻은 추천옷차림 텍스트값을 dall e 프롬프트에 대입 후 추출된 이미지를 s3 url 변환 후 백엔드로 전송
   - aws s3에 이미지 저장
 
-6. 일정알림
+5. 일정알림
   - 온라인 상태 : 앱을 사용중 일때는 in-app-notification 형태로 알림을 전송
   - 오프라인 상태 : FCM(Firebase Cloud Messaging)를 이용해 푸시 알림을 전송

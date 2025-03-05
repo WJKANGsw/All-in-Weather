@@ -1,4 +1,4 @@
-All-in-weather 생성형ai(ChatGPT API & DALL E)를 활용하여 사용자에게 날씨 정보와 옷차림을 추천해주는 웹서비스 입니다.
+All-in-weather 생성형ai(ChatGPT API & DALL E)를 활용하여 사용자에게 날씨 정보와 옷차림을 추천해주는 웹서비스 입니다.(모바일 최적화 & pwa 방식으로 빌드)
 
 BE
 1. sns 간편회원가입(구글,카카오,네이버) - 스프링 OAuth2 클라이언트 JWT (https://www.devyummi.com/page?id=669296ed4b5dc5675c8737be)

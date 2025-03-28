@@ -31,7 +31,6 @@ public class EmailProvider {
       e.printStackTrace();
       return false;
     }
-
     return true;
   }
 

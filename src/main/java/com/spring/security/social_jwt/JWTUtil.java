@@ -25,9 +25,9 @@ public class JWTUtil {
         return secretKey;
     }
 
-    public String getUsername(String token) {
+    public String getUserId(String token) {
 
-        return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().get("username", String.class);
+        return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().get("userId", String.class);
     }
 
     public String getRole(String token) {
@@ -53,14 +53,19 @@ public class JWTUtil {
         return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().getExpiration().before(new Date());
     }
 
-    public String createJwt(String username, String role,  String name,String email, String nickname, Long expiredMs, String loginType) {
+    public Boolean isProfileComplete(String token) {
+        return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().get("profileComplete", Boolean.class);
+    }
+
+    public String createJwt(String userId, String role,  String name, String email, String nickname, Long expiredMs, String loginType, boolean profileComplete) {
         return Jwts.builder()
-                .claim("username", username)
+                .claim("userId", userId)
                 .claim("role", role)
                 .claim("name", name)
                 .claim("email", email)
                 .claim("nickname", nickname)
                 .claim("loginType", loginType)
+                .claim("profileComplete", profileComplete)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiredMs))
                 .signWith(secretKey)
